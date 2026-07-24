@@ -2,12 +2,24 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 
-namespace Dsw2026Tpi.Data.Configurations;
-
-public class DoctorConfiguration : IEntityTypeConfiguration<Doctor>
+namespace Dsw2026Tpi.Data.Configurations
 {
-    public void Configure(EntityTypeBuilder<Doctor> builder)
+
+    public class DoctorConfiguration : EntityBaseConfiguration<Doctor>
     {
-        builder.ToTable("Doctors");
+        public override void Configure(EntityTypeBuilder<Doctor> builder)
+        {
+            base.Configure(builder);
+
+            builder.ToTable("Doctors");
+
+            builder.Property(d => d.Name).IsRequired().HasMaxLength(100);
+            builder.Property(d => d.LicenseNumber).HasMaxLength(50).IsRequired(false);
+
+            builder.HasOne(d => d.Speciality)
+                   .WithMany()
+                   .HasForeignKey(d => d.SpecialityId)
+                   .OnDelete(DeleteBehavior.Restrict);
+        }
     }
 }

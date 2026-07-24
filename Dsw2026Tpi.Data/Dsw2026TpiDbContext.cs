@@ -1,4 +1,5 @@
-﻿using Microsoft.EntityFrameworkCore;
+﻿using Dsw2026Tpi.Domain.Entities;
+using Microsoft.EntityFrameworkCore;
 using System.Reflection;
 
 namespace Dsw2026Tpi.Data;
@@ -13,6 +14,6 @@ public class Dsw2026TpiDbContext: DbContext
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         base.OnModelCreating(modelBuilder);
-        modelBuilder.ApplyConfigurationsFromAssembly(Assembly.GetExecutingAssembly());
+        modelBuilder.ApplyConfigurationsFromAssembly(typeof(Dsw2026TpiDbContext).Assembly);
     }
 }
