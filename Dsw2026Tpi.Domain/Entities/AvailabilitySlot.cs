@@ -1,21 +1,18 @@
-﻿using Dsw2026Tpi.Domain.Enums;
+﻿using Dsw2026Tpi.CrossCutting.Exceptions;
+using Dsw2026Tpi.CrossCutting.Resources;
+using Dsw2026Tpi.Domain.Enums;
 using System;
-using System.Collections.Generic;
-using System.Text;
 
 namespace Dsw2026Tpi.Domain.Entities
 {
     public class AvailabilitySlot : EntityBase
     {
-        public Guid DoctorId { get; init; }
-        public Doctor Doctor { get; private set; }
-        public Guid? AvailabilityRuleId { get; init; }
-        public AvailabilityRule? AvailabilityRule { get; private set; }
+        public Guid AvailabilityRuleId { get; init; }
+        public AvailabilityRule AvailabilityRule { get; private set; }
         public DateOnly SlotDate { get; init; }
         public TimeOnly StartTime { get; init; }
         public TimeOnly EndTime { get; init; }
         public SlotStatus Status { get; private set; }
-        public bool IsActive { get; private set; }
 
         #region Constructor for EF
 #pragma warning disable CS8618
@@ -25,29 +22,31 @@ namespace Dsw2026Tpi.Domain.Entities
 #pragma warning restore CS8618
         #endregion
 
-        public AvailabilitySlot(Doctor doctor, AvailabilityRule rule, DateOnly slotDate,
+        public AvailabilitySlot(AvailabilityRule rule, DateOnly slotDate,
             TimeOnly startTime, TimeOnly endTime, Guid? id = null) : base(id)
         {
-            Doctor = doctor;
-            DoctorId = doctor.Id;
-            AvailabilityRule = rule;
+            AvailabilityRule = rule ?? throw new ArgumentNullException(nameof(rule));
             AvailabilityRuleId = rule.Id;
             SlotDate = slotDate;
             StartTime = startTime;
             EndTime = endTime;
             Status = SlotStatus.Available;
-            IsActive = true;
         }
 
         public void Book()
         {
             if (Status != SlotStatus.Available)
-                throw new InvalidOperationException("Slot is not available.");
+                throw new BusinessRuleException(
+                        string.Format(ErrorCodes.SLOT_NOT_AVAILABLE, Status),
+                        nameof(ErrorCodes.SLOT_NOT_AVAILABLE))
+                    .WithDetail("status", Status.ToString());
+
             Status = SlotStatus.Booked;
         }
 
         public void Release()
         {
+            // Opcional: Podría agregar validación para evitar liberar turnos que no estén en estado Booked o Blocked.
             Status = SlotStatus.Available;
         }
 

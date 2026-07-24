@@ -1,6 +1,6 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Text;
+﻿using Dsw2026Tpi.CrossCutting.Exceptions;
+using Dsw2026Tpi.CrossCutting.Resources;
+using System;
 
 namespace Dsw2026Tpi.Domain.Entities
 {
@@ -13,7 +13,6 @@ namespace Dsw2026Tpi.Domain.Entities
         public DayOfWeek DayOfWeek { get; init; }
         public TimeOnly StartTime { get; private set; }
         public TimeOnly EndTime { get; private set; }
-        public bool IsActive { get; private set; }
 
         #region Constructor for EF
 #pragma warning disable CS8618
@@ -24,33 +23,31 @@ namespace Dsw2026Tpi.Domain.Entities
         #endregion
 
         public AvailabilityRule(Doctor doctor, int month, int year, DayOfWeek dayOfWeek,
-            TimeOnly startTime, TimeOnly endTime, Guid? id = null) : base(id)
+        TimeOnly startTime, TimeOnly endTime, Guid? id = null) : base(id)
         {
-            if (startTime >= endTime)
-                throw new ArgumentException("StartTime must be earlier than EndTime.");
+            ValidateRange(startTime, endTime);
 
-            Doctor = doctor;
+            Doctor = doctor ?? throw new ArgumentNullException(nameof(doctor));
             DoctorId = doctor.Id;
             Month = month;
             Year = year;
             DayOfWeek = dayOfWeek;
             StartTime = startTime;
             EndTime = endTime;
-            IsActive = true;
         }
 
         public void UpdateRange(TimeOnly startTime, TimeOnly endTime)
         {
-            if (startTime >= endTime)
-                throw new ArgumentException("StartTime must be earlier than EndTime.");
-
+            ValidateRange(startTime, endTime);
             StartTime = startTime;
             EndTime = endTime;
         }
 
-        public void Deactivate()
+        private static void ValidateRange(TimeOnly startTime, TimeOnly endTime)
         {
-            IsActive = false;
+            if (startTime >= endTime)
+                throw new BusinessRuleException(ErrorCodes.INVALID_TIME_RANGE, nameof(ErrorCodes.INVALID_TIME_RANGE))
+                    .WithDetail("startTime", "must_be_before_endTime");
         }
     }
 }

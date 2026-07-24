@@ -1,8 +1,7 @@
-﻿using Dsw2026Tpi.Domain.Enums;
+﻿using Dsw2026Tpi.CrossCutting.Exceptions;
+using Dsw2026Tpi.CrossCutting.Resources;
+using Dsw2026Tpi.Domain.Enums;
 using System;
-using System.Collections.Generic;
-using System.ComponentModel.DataAnnotations;
-using System.Text;
 
 namespace Dsw2026Tpi.Domain.Entities
 {
@@ -17,9 +16,6 @@ namespace Dsw2026Tpi.Domain.Entities
         public DateTime? CancelledAt { get; private set; }
         public DateTime? AttendedAt { get; private set; }
 
-        [Timestamp]
-        public byte[] RowVersion { get; set; } // control de concurrencia (evitar doble reserva)
-
         #region Constructor for EF
 #pragma warning disable CS8618
         private Appointment()
@@ -30,32 +26,36 @@ namespace Dsw2026Tpi.Domain.Entities
 
         public Appointment(AvailabilitySlot slot, Patient patient, string reason, Guid? id = null) : base(id)
         {
-            AvailabilitySlot = slot;
+            if (string.IsNullOrWhiteSpace(reason) || reason.Length < 5)
+                throw new ValidationException(ErrorCodes.INVALID_REASON, nameof(ErrorCodes.INVALID_REASON))
+                    .WithDetail("reason", "min_length_5");
+
+            AvailabilitySlot = slot ?? throw new ArgumentNullException(nameof(slot));
             AvailabilitySlotId = slot.Id;
-            Patient = patient;
+
+            Patient = patient ?? throw new ArgumentNullException(nameof(patient));
             PatientId = patient.Id;
+
             Reason = reason;
             Status = AppointmentStatus.Booked;
         }
 
-        public void Cancel()
+        public void Cancel() => TransitionFromBooked(AppointmentStatus.Cancelled, () => CancelledAt = DateTime.UtcNow);
+
+        public void MarkAttended() => TransitionFromBooked(AppointmentStatus.Attended, () => AttendedAt = DateTime.UtcNow);
+
+        public void MarkNoShow() => TransitionFromBooked(AppointmentStatus.NoShow, () => { });
+
+        private void TransitionFromBooked(AppointmentStatus newStatus, Action onTransition)
         {
             if (Status != AppointmentStatus.Booked)
-                throw new InvalidOperationException("Only booked appointments can be cancelled.");
+                throw new BusinessRuleException(
+                        string.Format(ErrorCodes.INVALID_APPOINTMENT_STATUS, Status),
+                        nameof(ErrorCodes.INVALID_APPOINTMENT_STATUS))
+                    .WithDetail("status", Status.ToString());
 
-            Status = AppointmentStatus.Cancelled;
-            CancelledAt = DateTime.UtcNow;
-        }
-
-        public void MarkAttended()
-        {
-            Status = AppointmentStatus.Attended;
-            AttendedAt = DateTime.UtcNow;
-        }
-
-        public void MarkNoShow()
-        {
-            Status = AppointmentStatus.NoShow;
+            Status = newStatus;
+            onTransition();
         }
     }
 }
