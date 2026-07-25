@@ -117,6 +117,9 @@
   <resheader name="writer">
     <value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
   </resheader>
+  <data name="APPOINTMENT_CONFLICT" xml:space="preserve">
+    <value>El turno ya fue reservado por otro paciente</value>
+  </data>
   <data name="AUTHENTICATION_FAILED" xml:space="preserve">
     <value>Usuario o contraseña incorrectos</value>
   </data>
@@ -126,11 +129,23 @@
   <data name="ENTITY_NOTFOUND" xml:space="preserve">
     <value>La entidad {0} no se encontró</value>
   </data>
+  <data name="INVALID_APPOINTMENT_STATUS" xml:space="preserve">
+    <value> La operación no es válida para el estado actual de la cita: {0}</value>
+  </data>
+  <data name="INVALID_REASON" xml:space="preserve">
+    <value>El motivo es obligatorio y debe tener al menos 5 caracteres</value>
+  </data>
+  <data name="INVALID_TIME_RANGE" xml:space="preserve">
+    <value>La hora de inicio debe ser anterior a la hora de fin</value>
+  </data>
   <data name="REGISTER_USER_CONFLICT" xml:space="preserve">
     <value>Se produjo un error al registrar el usuario</value>
   </data>
   <data name="REGISTER_USER_INVALID" xml:space="preserve">
     <value>Datos de registración de usuario no válidos</value>
+  </data>
+  <data name="SLOT_NOT_AVAILABLE" xml:space="preserve">
+    <value>El turno no está disponible para reservar. Estado actual: {0}</value>
   </data>
   <data name="UNHANDLED_ERROR" xml:space="preserve">
     <value>Se produjo un error no controlado</value>
