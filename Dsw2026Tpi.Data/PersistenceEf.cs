@@ -2,6 +2,7 @@
 using Dsw2026Tpi.Domain.Interfaces;
 using Microsoft.EntityFrameworkCore;
 using System.Linq.Expressions;
+using Microsoft.EntityFrameworkCore.Storage;
 
 namespace Dsw2026Tpi.Data;
 
@@ -113,5 +114,10 @@ public class PersistenceEf: IPersistence
             includedQuery = includedQuery.Include(include);
         }
         return includedQuery;
+    }
+    public async Task<ITransaction> BeginTransactionAsync()
+    {
+        var transaction = await _context.Database.BeginTransactionAsync();
+        return new TransactionEf(transaction);
     }
 }
