@@ -34,6 +34,8 @@ public class Program
 
             var app = builder.Build();
 
+            await app.UseIdentitySeedAsync();
+
             app.UseSerilogRequestLogging();
 
             if (app.Environment.IsProduction())
