@@ -13,6 +13,7 @@ namespace Dsw2026Tpi.Domain.Entities
         public TimeOnly StartTime { get; init; }
         public TimeOnly EndTime { get; init; }
         public SlotStatus Status { get; private set; }
+        public byte[] RowVersion { get; private set; }
 
         #region Constructor for EF
 #pragma warning disable CS8618
@@ -46,7 +47,7 @@ namespace Dsw2026Tpi.Domain.Entities
 
         public void Release()
         {
-            // Opcional: Podría agregar validación para evitar liberar turnos que no estén en estado Booked o Blocked.
+            // Opcional: Podria agregar validación para evitar liberar turnos que no estén en estado Booked o Blocked.
             Status = SlotStatus.Available;
         }
 

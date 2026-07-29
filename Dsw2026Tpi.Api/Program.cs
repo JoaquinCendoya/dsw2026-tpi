@@ -2,6 +2,8 @@ using Dsw2026Tpi.Api.Configurations;
 using Dsw2026Tpi.Api.Middlewares;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Mvc.Authorization;
 using Serilog;
 
 namespace Dsw2026Tpi.Api;
@@ -29,7 +31,15 @@ public class Program
             builder.Services.AddApplicationPersistence(builder.Configuration);
             builder.Services.AddAppCors(builder.Configuration);
             builder.Services.AddAppDependencies();
-            builder.Services.AddControllers();
+            builder.Services.AddControllers(options =>
+            {
+                // Politica global: Todo endpoint requiere un usuario autenticado
+                var policy = new AuthorizationPolicyBuilder()
+                                 .RequireAuthenticatedUser()
+                                 .Build();
+
+                options.Filters.Add(new AuthorizeFilter(policy));
+            });
             builder.Services.AddHealthChecks();
 
             var app = builder.Build();

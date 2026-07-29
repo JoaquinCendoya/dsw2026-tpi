@@ -1,6 +1,8 @@
 ﻿using Dsw2026Tpi.Data;
 using Dsw2026Tpi.Data.Extensions;
 using Dsw2026Tpi.Data.Identity;
+using Dsw2026Tpi.Data.Repositories;
+using Dsw2026Tpi.Domain.Interfaces;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 
@@ -28,6 +30,10 @@ public static class PersistenceConfigurationExtensions
                 c.Seedwork<IdentityRole>("Sources\\roles.json");
             });
         });
+        // Registro de los patrones de arquitectura base
+        services.AddScoped<IUnitOfWork, UnitOfWork>();
+        services.AddScoped(typeof(IRepository<>), typeof(Repository<>));
+
         return services;
     }
 }

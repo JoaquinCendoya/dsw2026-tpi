@@ -25,7 +25,10 @@ namespace Dsw2026Tpi.Data.Configurations
                    .HasForeignKey(a => a.AvailabilitySlotId)
                    .OnDelete(DeleteBehavior.Restrict);
 
-            builder.HasIndex(a => a.AvailabilitySlotId).IsUnique();
+            // Control de concurrencia nativo (RN03): Un slot solo puede tener una cita ACTIVA asociada
+            builder.HasIndex(a => a.AvailabilitySlotId)
+                   .IsUnique()
+                   .HasFilter("[Status] = 'Booked' AND [Deleted] = 0");
 
             // Relacion con Paciente
             builder.HasOne(a => a.Patient)

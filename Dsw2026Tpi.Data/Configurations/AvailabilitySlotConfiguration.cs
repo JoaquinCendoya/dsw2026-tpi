@@ -19,15 +19,19 @@ namespace Dsw2026Tpi.Data.Configurations
             builder.Property(a => a.EndTime).IsRequired();
             builder.Property(a => a.Status).IsRequired().HasConversion<string>().HasMaxLength(20);
 
-            // Relacion obligatoria con AvailabilityRule
+            // 1. Control de concurrencia optimista
+            builder.Property(a => a.RowVersion).IsRowVersion();
+
+            // 2. Corrección de restricción referencial (Previene borrado en cascada)
             builder.HasOne(a => a.AvailabilityRule)
                    .WithMany()
                    .HasForeignKey(a => a.AvailabilityRuleId)
-                   .OnDelete(DeleteBehavior.Cascade);
+                   .OnDelete(DeleteBehavior.Restrict);
 
-            // Constraint UNIQUE para evitar colision fisica de bloques generados
+            // 3. Índice único con filtro para borrado lógico
             builder.HasIndex(a => new { a.AvailabilityRuleId, a.SlotDate, a.StartTime })
-                   .IsUnique();
+                   .IsUnique()
+                   .HasFilter("[Deleted] = 0");
 
             builder.Property(a => a.Deleted).HasDefaultValue(false);
         }
