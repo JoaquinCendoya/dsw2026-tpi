@@ -32,6 +32,11 @@ public class UnitOfWork : IUnitOfWork
     {
         return await _context.SaveChangesAsync();
     }
+    public async Task<ITransaction> BeginTransactionAsync()
+    {
+        var transaction = await _context.Database.BeginTransactionAsync();
+        return new TransactionEf(transaction);
+    }
 
     public void Dispose()
     {
