@@ -46,4 +46,46 @@ public class Repository<T> : IRepository<T> where T : EntityBase
         entity.Delete();
         _dbSet.Update(entity);
     }
+    public async Task<Pagination<T>> PaginateAsync<TKey>(
+    int pageSize,
+    int pageIndex,
+    Expression<Func<T, bool>> predicate,
+    Expression<Func<T, TKey>> sortOrder,
+    params string[] includes)
+    {
+        pageSize = Math.Abs(pageSize);
+        pageIndex = Math.Abs(pageIndex) == 0 ? 0 : Math.Abs(pageIndex) - 1;
+
+        var query = _dbSet.Where(e => !e.Deleted);
+
+        foreach (var include in includes)
+        {
+            query = query.Include(include);
+        }
+
+        var filtered = query.Where(predicate).OrderBy(sortOrder);
+        var total = await filtered.CountAsync();
+
+        async Task<Pagination<T>> GetPage(int skip, int take)
+        {
+            var data = await filtered.Skip(skip).Take(take).ToListAsync();
+            return new Pagination<T>(pageSize, pageIndex, total, data);
+        }
+
+        if (total > pageSize * pageIndex)
+            return await GetPage(pageIndex * pageSize, pageSize);
+
+        if (total < pageSize)
+            return new Pagination<T>(pageSize, pageIndex, total, await filtered.ToListAsync());
+
+        var targetPageIndex = pageIndex - 1;
+        while (true)
+        {
+            if (total > targetPageIndex * pageSize)
+                return await GetPage(targetPageIndex * pageSize, pageSize);
+
+            targetPageIndex--;
+            if (targetPageIndex < 0) return new Pagination<T>(pageSize, 0, 0, []);
+        }
+    }
 }

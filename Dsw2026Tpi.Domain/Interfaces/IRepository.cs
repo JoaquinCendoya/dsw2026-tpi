@@ -11,4 +11,12 @@ public interface IRepository<T> where T : EntityBase
     Task AddAsync(T entity);
     void Update(T entity);
     void Delete(T entity);
+
+    // Nueva firma obligatoria para reemplazar IPersistence
+    Task<Pagination<T>> PaginateAsync<TKey>(
+        int pageSize,
+        int pageIndex,
+        Expression<Func<T, bool>> predicate,
+        Expression<Func<T, TKey>> sortOrder,
+        params string[] includes);
 }
