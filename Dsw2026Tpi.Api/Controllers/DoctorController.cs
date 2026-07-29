@@ -5,9 +5,10 @@ using Microsoft.AspNetCore.Mvc;
 
 namespace Dsw2026Tpi.Api.Controllers;
 
-[Route("doctors")]
+[ApiController]
+[Route("api/doctors")]
 [Authorize(Policy = Policies.AdminPolicy)]
-public class DoctorController : AppController
+public class DoctorController : ControllerBase
 {
     private readonly IDoctorService _service;
 

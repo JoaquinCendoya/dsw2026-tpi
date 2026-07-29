@@ -28,6 +28,9 @@ public static class PersistenceConfigurationExtensions
                 c.Seedwork<IdentityRole>("Sources\\roles.json");
             });
         });
+
+        services.AddScoped<DbContext>(provider => provider.GetRequiredService<Dsw2026TpiDbContext>());
+
         return services;
     }
 }
