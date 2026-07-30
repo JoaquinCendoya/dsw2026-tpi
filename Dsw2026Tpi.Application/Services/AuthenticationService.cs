@@ -5,6 +5,8 @@ using Dsw2026Tpi.CrossCutting.Helpers;
 using Dsw2026Tpi.CrossCutting.Identity;
 using Dsw2026Tpi.CrossCutting.Resources;
 using Dsw2026Tpi.Data.Identity;
+using Dsw2026Tpi.Domain.Entities;
+using Dsw2026Tpi.Domain.Interfaces;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.Extensions.Logging;
 
@@ -17,18 +19,22 @@ public class AuthenticationService : IAuthenticationService
     private readonly RoleManager<IdentityRole> _roleManager;
     private readonly JwtService _jwtService;
     private readonly ILogger<AuthenticationService> _logger;
+    private readonly IUnitOfWork _unitOfWork;
+
 
     public AuthenticationService(UserManager<ApplicationUser> userManager,
         ISignInService signInManager,
         RoleManager<IdentityRole> roleManager,
         JwtService jwtService,
-        ILogger<AuthenticationService> logger)
+        ILogger<AuthenticationService> logger,
+        IUnitOfWork unitOfWork)
     {
         _userManager = userManager;
         _signInManager = signInManager;
         _roleManager = roleManager;
         _jwtService = jwtService;
         _logger = logger;
+        _unitOfWork = unitOfWork;
     }
 
     public async Task<LoginAdminModel.Response> LoginAdmin(LoginAdminModel.Request request)
@@ -53,9 +59,67 @@ public class AuthenticationService : IAuthenticationService
         );
     }
 
-    public async Task<LoginPatientModel.Response> LoginPatient(LoginPatientModel.Response request)
+    public async Task<LoginPatientModel.Response> LoginPatient(LoginPatientModel.Request request)
     {
-        throw new NotImplementedException();
+        var user = await _userManager.FindByEmailAsync(request.Email);
+
+        if (user == null)
+        {
+            user = new ApplicationUser
+            {
+                UserName = request.Email,
+                Email = request.Email,
+                CreatedAt = DateTime.UtcNow,
+                UpdatedAt = DateTime.UtcNow
+            };
+
+            // Generar una contraseña temporal segura para cumplir con las políticas por defecto
+            var tempPassword = Guid.NewGuid().ToString("N") + "A1!";
+            var result = await _userManager.CreateAsync(user, tempPassword);
+
+            if (!result.Succeeded)
+            {
+                throw new ConflictException(nameof(ErrorCodes.REGISTER_USER_CONFLICT), ErrorCodes.REGISTER_USER_CONFLICT)
+                    .WithDetail(result.Errors.Select(e => (e.Code, e.Description)));
+            }
+
+            // Uso de la constante estandarizada
+            await _userManager.AddToRoleAsync(user, Roles.Patient);
+
+            var patient = new Patient(
+                Guid.Parse(user.Id),
+                request.Dni.ToString()
+            );
+
+            try
+            {
+                await _unitOfWork.Repository<Patient>().AddAsync(patient);
+                await _unitOfWork.SaveChangesAsync();
+            }
+            catch (Exception ex)
+            {
+                // Mecanismo de compensacion: rollback logico en Identity
+                _logger.LogError(ex, "Error al persistir el paciente. Revirtiendo creación en Identity.");
+                await _userManager.DeleteAsync(user);
+                throw; // Lanzar para que sea capturado por el middleware global
+            }
+        }
+        else
+        {
+            var patient = (await _unitOfWork.Repository<Patient>()
+                .FindAsync(p => p.UserId == Guid.Parse(user.Id) && p.Dni == request.Dni.ToString()))
+                .FirstOrDefault();
+
+            if (patient == null)
+            {
+                _logger.LogError("Intento de login fallido. DNI no coincide para el email: {Email}", request.Email);
+                throw new AuthenticationException();
+            }
+        }
+        var role = Roles.Patient;
+        var token = _jwtService.GenerateToken(user.UserName!, role);
+
+        return new LoginPatientModel.Response(token, role);
     }
 
     public async Task<RegisterModel.Response> Register(RegisterModel.Request request)

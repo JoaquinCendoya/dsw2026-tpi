@@ -6,10 +6,10 @@ namespace Dsw2026Tpi.Data.Repositories;
 
 public class UnitOfWork : IUnitOfWork
 {
-    private readonly DbContext _context;
+    private readonly Dsw2026TpiDbContext _context;
     private readonly Dictionary<string, object> _repositories;
 
-    public UnitOfWork(DbContext context)
+    public UnitOfWork(Dsw2026TpiDbContext context)
     {
         _context = context ?? throw new ArgumentNullException(nameof(context));
         _repositories = new Dictionary<string, object>();
