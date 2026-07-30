@@ -33,7 +33,8 @@ public static class PersistenceConfigurationExtensions
         // Registro de los patrones de arquitectura base
         services.AddScoped<IUnitOfWork, UnitOfWork>();
         services.AddScoped(typeof(IRepository<>), typeof(Repository<>));
-
+        // Delegación explícita del DbContext genérico al contexto de dominio
+        services.AddScoped<DbContext>(provider => provider.GetRequiredService<Dsw2026TpiDbContext>());
         return services;
     }
 }

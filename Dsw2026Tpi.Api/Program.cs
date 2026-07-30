@@ -41,6 +41,7 @@ public class Program
                 options.Filters.Add(new AuthorizeFilter(policy));
             });
             builder.Services.AddHealthChecks();
+            builder.Services.AddAppRateLimiter(builder.Configuration);
 
             var app = builder.Build();
 
@@ -60,6 +61,7 @@ public class Program
             app.UseAuthorization();
             app.UseCors();
             app.UseMiddleware<ExceptionHandlingMiddleware>();
+            app.UseRateLimiter();
 
             app.MapControllers();
             app.MapHealthChecks("/health-check");
