@@ -8,6 +8,12 @@ public static class RateLimitingConfiguration
     {
         services.AddRateLimiter(options =>
         {
+            options.AddFixedWindowLimiter("AppointmentPolicy", opt =>
+            {
+                opt.PermitLimit = configuration.GetValue<int>("RateLimiting:AppointmentLimit");
+                opt.Window = TimeSpan.FromMinutes(1);
+                opt.QueueLimit = 0;
+            });
             options.AddFixedWindowLimiter("AdminLoginPolicy", opt =>
             {
                 opt.PermitLimit = configuration.GetValue<int>("RateLimiting:AdminLoginLimit");

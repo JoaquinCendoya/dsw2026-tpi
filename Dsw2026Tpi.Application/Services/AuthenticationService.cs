@@ -73,7 +73,9 @@ public class AuthenticationService : IAuthenticationService
                 UpdatedAt = DateTime.UtcNow
             };
 
-            var result = await _userManager.CreateAsync(user);
+            // Generar una contraseña temporal segura para cumplir con las políticas por defecto
+            var tempPassword = Guid.NewGuid().ToString("N") + "A1!";
+            var result = await _userManager.CreateAsync(user, tempPassword);
 
             if (!result.Succeeded)
             {
@@ -81,15 +83,26 @@ public class AuthenticationService : IAuthenticationService
                     .WithDetail(result.Errors.Select(e => (e.Code, e.Description)));
             }
 
-            await _userManager.AddToRoleAsync(user, "PACIENTE");
+            // Uso de la constante estandarizada
+            await _userManager.AddToRoleAsync(user, Roles.Patient);
 
             var patient = new Patient(
                 Guid.Parse(user.Id),
                 request.Dni.ToString()
             );
 
-            await _unitOfWork.Repository<Patient>().AddAsync(patient);
-            await _unitOfWork.SaveChangesAsync();
+            try
+            {
+                await _unitOfWork.Repository<Patient>().AddAsync(patient);
+                await _unitOfWork.SaveChangesAsync();
+            }
+            catch (Exception ex)
+            {
+                // Mecanismo de compensacion: rollback logico en Identity
+                _logger.LogError(ex, "Error al persistir el paciente. Revirtiendo creación en Identity.");
+                await _userManager.DeleteAsync(user);
+                throw; // Lanzar para que sea capturado por el middleware global
+            }
         }
         else
         {
@@ -103,8 +116,7 @@ public class AuthenticationService : IAuthenticationService
                 throw new AuthenticationException();
             }
         }
-
-        var role = "PACIENTE";
+        var role = Roles.Patient;
         var token = _jwtService.GenerateToken(user.UserName!, role);
 
         return new LoginPatientModel.Response(token, role);
