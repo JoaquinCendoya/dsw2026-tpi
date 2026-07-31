@@ -1,10 +1,12 @@
 using Dsw2026Tpi.Api.Configurations;
+using Dsw2026Tpi.Api.Filters;
 using Dsw2026Tpi.Api.Middlewares;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc.Authorization;
 using Serilog;
+
 
 namespace Dsw2026Tpi.Api;
 
@@ -39,6 +41,7 @@ public class Program
                                  .Build();
 
                 options.Filters.Add(new AuthorizeFilter(policy));
+                options.Filters.Add<ValidationFilter>();
             });
             builder.Services.AddHealthChecks();
             builder.Services.AddAppRateLimiter(builder.Configuration);
