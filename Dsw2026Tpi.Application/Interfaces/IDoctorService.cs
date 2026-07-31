@@ -7,7 +7,7 @@ public interface IDoctorService
 {
     Task<Pagination<DoctorModel.Response>> GetAll(int pageSize, int pageIndex, string? name = null);
     Task<DoctorModel.Response> Create(DoctorModel.Request request);
-    Task Update(Guid id, DoctorModel.Request request);
+    Task<DoctorModel.Response> Update(Guid id, DoctorModel.Request request);
     Task Delete(Guid id);
     Task<IEnumerable<DoctorModel.AvailabilityResponse>> GetAvailabilities(Guid id);
 }
