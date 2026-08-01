@@ -31,6 +31,18 @@ public class Repository<T> : IRepository<T> where T : EntityBase
         return await _dbSet.Where(e => !e.Deleted).Where(predicate).ToListAsync();
     }
 
+    public async Task<IEnumerable<T>> FindAsync(Expression<Func<T, bool>> predicate, params string[] includes)
+    {
+        var query = _dbSet.Where(e => !e.Deleted).AsQueryable();
+
+        foreach (var include in includes)
+        {
+            query = query.Include(include);
+        }
+
+        return await query.Where(predicate).ToListAsync();
+    }
+
     public async Task AddAsync(T entity)
     {
         await _dbSet.AddAsync(entity);

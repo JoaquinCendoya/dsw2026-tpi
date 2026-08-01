@@ -5,6 +5,7 @@ using Dsw2026Tpi.CrossCutting.Exceptions;
 using Dsw2026Tpi.Domain.Entities;
 using Dsw2026Tpi.Domain.Interfaces;
 using Microsoft.EntityFrameworkCore;
+using Dsw2026Tpi.Domain.Enums;
 
 namespace Dsw2026Tpi.Application.Services;
 
@@ -80,7 +81,19 @@ public class AppointmentService : IAppointmentService
 
         _unitOfWork.Repository<Appointment>().Update(appointment);
         _unitOfWork.Repository<AvailabilitySlot>().Update(availabilitySlot);
-        
+
         await _unitOfWork.SaveChangesAsync();
+    }
+
+    public async Task<IEnumerable<AppointmentModel.SearchResponse>> GetByPatientDniAsync(AppointmentModel.PatientDto request)
+    {
+        var patients = await _unitOfWork.Repository<Patient>().FindAsync(p => p.Dni == request.Dni.ToString());
+        var patient = patients.FirstOrDefault()
+                   ?? throw new EntityNotFoundException(nameof(Patient));
+
+        var appointments = await _unitOfWork.Repository<Appointment>()
+            .FindAsync(a => a.PatientId == patient.Id && a.Status != AppointmentStatus.Cancelled && a.Status != AppointmentStatus.Attended, "AvailabilitySlot.AvailabilityRule.Doctor.Speciality");
+
+        return appointments.Select(a => a.ToSearchResponse());
     }
 }

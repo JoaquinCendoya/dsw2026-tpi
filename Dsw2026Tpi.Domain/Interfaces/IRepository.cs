@@ -19,4 +19,5 @@ public interface IRepository<T> where T : EntityBase
         Expression<Func<T, bool>> predicate,
         Expression<Func<T, TKey>> sortOrder,
         params string[] includes);
+    Task<IEnumerable<T>> FindAsync(Expression<Func<T, bool>> predicate, params string[] includes);
 }
