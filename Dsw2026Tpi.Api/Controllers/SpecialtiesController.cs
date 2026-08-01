@@ -7,20 +7,20 @@ using Microsoft.AspNetCore.Mvc;
 
 namespace Dsw2026Tpi.Api.Controllers;
 
-[Route("api/doctors")]
+[Route("api/specialties")]
 [Authorize(Policy = Policies.AdminPolicy)]
-public class DoctorController : AppController
+public class SpecialtiesController : AppController
 {
-    private readonly IDoctorService _service;
+    private readonly ISpecialityService _service;
 
-    public DoctorController(IDoctorService service)
+    public SpecialtiesController(ISpecialityService service)
     {
         _service = service;
     }
 
     [HttpGet]
-    [AllowAnonymous]
-    [ProducesResponseType(typeof(Pagination<DoctorModel.Response>), StatusCodes.Status200OK)]
+    [AllowAnonymous] // Ajustar según regla de negocio (usualmente las lecturas son públicas o para todo usuario autenticado)
+    [ProducesResponseType(typeof(Pagination<SpecialityModel.Response>), StatusCodes.Status200OK)]
     public async Task<IActionResult> GetAll(
         [FromQuery] int pageSize, 
         [FromQuery] int pageIndex, 
@@ -30,26 +30,17 @@ public class DoctorController : AppController
         return Ok(result);
     }
 
-    [HttpGet("{id:guid}/availabilities")]
-    [AllowAnonymous]
-    [ProducesResponseType(typeof(IEnumerable<DoctorModel.AvailabilityResponse>), StatusCodes.Status200OK)]
-    public async Task<IActionResult> GetAvailabilities([FromRoute] Guid id)
-    {
-        var result = await _service.GetAvailabilities(id);
-        return Ok(result);
-    }
-
     [HttpPost]
-    [ProducesResponseType(typeof(DoctorModel.Response), StatusCodes.Status201Created)]
-    public async Task<IActionResult> Create([FromBody] DoctorModel.Request request)
+    [ProducesResponseType(typeof(SpecialityModel.Response), StatusCodes.Status201Created)]
+    public async Task<IActionResult> Create([FromBody] SpecialityModel.Request request)
     {
         var result = await _service.Create(request);
         return StatusCode(StatusCodes.Status201Created, result);
     }
 
     [HttpPut("{id:guid}")]
-    [ProducesResponseType(typeof(DoctorModel.Response), StatusCodes.Status200OK)]
-    public async Task<IActionResult> Update([FromRoute] Guid id, [FromBody] DoctorModel.Request request)
+    [ProducesResponseType(typeof(SpecialityModel.Response), StatusCodes.Status200OK)]
+    public async Task<IActionResult> Update([FromRoute] Guid id, [FromBody] SpecialityModel.Request request)
     {
         var result = await _service.Update(id, request);
         return Ok(result);
