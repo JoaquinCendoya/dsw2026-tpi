@@ -126,6 +126,9 @@
   <data name="AUTHORIZATION_FAILED" xml:space="preserve">
     <value>Se requieren permisos para la operación solicitada</value>
   </data>
+  <data name="CONFIGURATION_FILE_NOT_FOUND" xml:space="preserve">
+    <value>No se encontró el archivo de configuración requerido en la ruta: {0}</value>
+  </data>
   <data name="ENTITY_NOTFOUND" xml:space="preserve">
     <value>La entidad {0} no se encontró</value>
   </data>
