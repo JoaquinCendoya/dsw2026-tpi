@@ -105,4 +105,22 @@ public class AppointmentService : IAppointmentService
         return appointments.Select(a => a.ToSearchResponse());
     }
 
+    public async Task<Pagination<AppointmentModel.SearchResponse>> SearchAsync(int pageSize, int pageIndex, Guid? specialtyId, Guid? doctorId, AppointmentModel.PatientDto? dni, DateOnly? date)
+    {
+        string? dniValue = dni?.Dni.ToString();
+
+        var appointments = await _unitOfWork.Repository<Appointment>().PaginateAsync(
+            pageSize,
+            pageIndex,
+            a => (specialtyId == null || a.AvailabilitySlot.AvailabilityRule.Doctor.SpecialityId == specialtyId) &&
+                  (doctorId == null || a.AvailabilitySlot.AvailabilityRule.DoctorId == doctorId) &&
+                  (dniValue == null || a.Patient.Dni == dniValue) &&
+                  (date == null || a.AvailabilitySlot.SlotDate == date),
+                  a => a.AvailabilitySlot.SlotDate,
+            "AvailabilitySlot.AvailabilityRule.Doctor.Speciality");
+
+        return appointments.Map(a => a.ToSearchResponse());
+    }
+
+
 }
