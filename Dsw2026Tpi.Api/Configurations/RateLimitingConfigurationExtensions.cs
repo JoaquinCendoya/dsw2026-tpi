@@ -2,7 +2,7 @@
 
 namespace Dsw2026Tpi.Api.Configurations;
 
-public static class RateLimitingConfiguration
+public static class RateLimitingConfigurationExtensions
 {
     public static IServiceCollection AddAppRateLimiter(this IServiceCollection services, IConfiguration configuration)
     {
