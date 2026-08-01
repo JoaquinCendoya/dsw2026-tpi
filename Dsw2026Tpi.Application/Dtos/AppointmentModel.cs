@@ -9,6 +9,8 @@ namespace Dsw2026Tpi.Application.Dtos
         public record Request(Guid DoctorId, Guid AvailabilitySlotId, PatientDto Patient, string Reason);
 
         public record PatientDto(long Dni);
+        
+        public record AttendanceRequest(bool Attended);
 
         public record SearchResponse(
             Guid Id,
