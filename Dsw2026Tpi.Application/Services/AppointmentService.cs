@@ -122,5 +122,21 @@ public class AppointmentService : IAppointmentService
         return appointments.Map(a => a.ToSearchResponse());
     }
 
+    public async Task MarkAttendanceAsync(Guid id, bool attended)
+    {
+        var appointment = await _unitOfWork.Repository<Appointment>().GetByIdAsync(id)
+            ?? throw new EntityNotFoundException(nameof(Appointment));
 
+        if (attended)
+        {
+            appointment.MarkAttended();
+        }
+        else
+        {
+            appointment.MarkNoShow();
+        }
+
+        _unitOfWork.Repository<Appointment>().Update(appointment);
+        await _unitOfWork.SaveChangesAsync();
+    }
 }
