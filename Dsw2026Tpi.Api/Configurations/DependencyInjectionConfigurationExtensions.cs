@@ -1,6 +1,5 @@
-﻿using Dsw2026Tpi.Api.Services;
+﻿using Dsw2026Tpi.Application.Services;
 using Dsw2026Tpi.Application.Interfaces;
-using Dsw2026Tpi.Application.Services;
 using Dsw2026Tpi.Application.Validators;
 using Dsw2026Tpi.Data.Repositories;
 using Dsw2026Tpi.Domain.Interfaces;
