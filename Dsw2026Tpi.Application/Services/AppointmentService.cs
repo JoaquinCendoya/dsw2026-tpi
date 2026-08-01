@@ -97,12 +97,12 @@ public class AppointmentService : IAppointmentService
         return appointments.Select(a => a.ToSearchResponse());
     }
 
-    public async Task<IEnumerable<AppointmentModel.SearchResponse>> GetByDateAsync(DateOnly date)
+    public async Task<Pagination<AppointmentModel.SearchResponse>> GetByDateAsync(DateOnly date, int pageSize, int pageIndex)
     {
         var appointments = await _unitOfWork.Repository<Appointment>()
-            .FindAsync(a => a.AvailabilitySlot.SlotDate == date, "AvailabilitySlot.AvailabilityRule.Doctor.Speciality");
+            .PaginateAsync(pageSize, pageIndex, a => a.AvailabilitySlot.SlotDate == date, a => a.AvailabilitySlot.StartTime, "AvailabilitySlot.AvailabilityRule.Doctor.Speciality");
 
-        return appointments.Select(a => a.ToSearchResponse());
+        return appointments.Map(a => a.ToSearchResponse());
     }
 
     public async Task<Pagination<AppointmentModel.SearchResponse>> SearchAsync(int pageSize, int pageIndex, Guid? specialtyId, Guid? doctorId, AppointmentModel.PatientDto? dni, DateOnly? date)
