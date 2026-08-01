@@ -67,4 +67,20 @@ public class AppointmentService : IAppointmentService
 
         return appointment.ToSearchResponse();
     }
+
+    public async Task CancelAsync(Guid id)
+    {
+        var appointment = await _unitOfWork.Repository<Appointment>().GetByIdAsync(id)
+            ?? throw new EntityNotFoundException(nameof(Appointment));
+        var availabilitySlot = await _unitOfWork.Repository<AvailabilitySlot>().GetByIdAsync(appointment.AvailabilitySlotId)
+            ?? throw new EntityNotFoundException(nameof(AvailabilitySlot));
+
+        appointment.Cancel();
+        availabilitySlot.Release();
+
+        _unitOfWork.Repository<Appointment>().Update(appointment);
+        _unitOfWork.Repository<AvailabilitySlot>().Update(availabilitySlot);
+        
+        await _unitOfWork.SaveChangesAsync();
+    }
 }
