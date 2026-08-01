@@ -96,4 +96,13 @@ public class AppointmentService : IAppointmentService
 
         return appointments.Select(a => a.ToSearchResponse());
     }
+
+    public async Task<IEnumerable<AppointmentModel.SearchResponse>> GetByDateAsync(DateOnly date)
+    {
+        var appointments = await _unitOfWork.Repository<Appointment>()
+            .FindAsync(a => a.AvailabilitySlot.SlotDate == date, "AvailabilitySlot.AvailabilityRule.Doctor.Speciality");
+
+        return appointments.Select(a => a.ToSearchResponse());
+    }
+
 }
