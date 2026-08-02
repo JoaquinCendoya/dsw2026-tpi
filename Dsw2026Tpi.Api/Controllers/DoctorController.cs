@@ -19,12 +19,17 @@ public class DoctorController : AppController
     }
 
     [HttpGet]
+<<<<<<< HEAD
     [AllowAnonymous]
     [ProducesResponseType(typeof(Pagination<DoctorModel.Response>), StatusCodes.Status200OK)]
     public async Task<IActionResult> GetAll(
         [FromQuery] int pageSize, 
         [FromQuery] int pageIndex, 
         [FromQuery] string? name = null)
+=======
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    public async Task<IActionResult> GetAll([FromQuery] int pageSize, [FromQuery] int pageIndex, [FromQuery] string? name = null)
+>>>>>>> fc8e4e2 (feat:endpoints POST, PUT, DELETE y availabilities a DoctorController)
     {
         var result = await _service.GetAll(pageSize, pageIndex, name);
         return Ok(result);
@@ -61,5 +66,41 @@ public class DoctorController : AppController
     {
         await _service.Delete(id);
         return Ok("ok");
+    }
+
+    [HttpGet("{id}/availabilities")]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    public async Task<IActionResult> GetAvailabilities(Guid id)
+    {
+        var availabilities = await _service.GetAvailabilities(id);
+        return Ok(availabilities);
+    }
+
+    [HttpPost]
+    [ProducesResponseType(StatusCodes.Status201Created)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    public async Task<IActionResult> Create([FromBody] DoctorModel.Request request)
+    {
+        var doctor = await _service.Create(request);
+        return CreatedAtAction(nameof(GetAll), new { id = doctor.Id }, doctor);
+    }
+
+    [HttpPut("{id}")]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public async Task<IActionResult> Update(Guid id, [FromBody] DoctorModel.Request request)
+    {
+        await _service.Update(id, request);
+        return Ok();
+    }
+
+    [HttpDelete("{id}")]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public async Task<IActionResult> Delete(Guid id)
+    {
+        await _service.Delete(id);
+        return Ok();
     }
 }
