@@ -2,7 +2,7 @@
 using System.Collections.Generic;
 using System.Text;
 
-namespace Dsw2026Tpi.Application.Dtos
+namespace Dsw2026Tpi.Application.Models
 {
     public static class SpecialtyModel
     {
