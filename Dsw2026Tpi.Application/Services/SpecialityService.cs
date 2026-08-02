@@ -15,7 +15,7 @@ public class SpecialityService : ISpecialityService
         _unitOfWork = unitOfWork;
     }
 
-    public async Task<Pagination<SpecialityModel.Response>> GetAll(int pageSize, int pageIndex, string? name = null)
+    public async Task<Pagination<SpecialityModel.Response>> GetAll(int pageSize, int pageIndex, string name)
     {
         var specialities = await _unitOfWork.Repository<Speciality>().PaginateAsync(
             pageSize,
