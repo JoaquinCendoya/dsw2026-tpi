@@ -1,9 +1,6 @@
 ﻿using Dsw2026Tpi.Domain.Entities;
-using Microsoft.EntityFrameworkCore.Metadata.Builders;
 using Microsoft.EntityFrameworkCore;
-using System;
-using System.Collections.Generic;
-using System.Text;
+using Microsoft.EntityFrameworkCore.Metadata.Builders;
 
 namespace Dsw2026Tpi.Data.Configurations
 {

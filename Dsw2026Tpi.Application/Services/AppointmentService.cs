@@ -88,7 +88,7 @@ public class AppointmentService : IAppointmentService
 
     public async Task<IEnumerable<AppointmentModel.SearchResponse>> GetByPatientDniAsync(AppointmentModel.PatientDto request)
     {
-        string dniString = request.Patient.Dni.ToString();
+        string dniString = request.Dni.ToString();
         var patients = await _unitOfWork.Repository<Patient>().FindAsync(p => p.Dni == dniString);
         var patient = patients.FirstOrDefault()
                    ?? throw new EntityNotFoundException(nameof(Patient));

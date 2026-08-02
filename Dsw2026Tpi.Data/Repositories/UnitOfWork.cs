@@ -1,6 +1,5 @@
 ﻿using Dsw2026Tpi.Domain.Entities;
 using Dsw2026Tpi.Domain.Interfaces;
-using Microsoft.EntityFrameworkCore;
 
 namespace Dsw2026Tpi.Data.Repositories;
 

@@ -88,6 +88,15 @@ namespace Dsw2026Tpi.CrossCutting.Resources {
         }
         
         /// <summary>
+        ///   Busca una cadena traducida similar a No se encontró el archivo de configuración requerido en la ruta: {0}.
+        /// </summary>
+        public static string CONFIGURATION_FILE_NOT_FOUND {
+            get {
+                return ResourceManager.GetString("CONFIGURATION_FILE_NOT_FOUND", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Busca una cadena traducida similar a La entidad {0} no se encontró.
         /// </summary>
         public static string ENTITY_NOTFOUND {
