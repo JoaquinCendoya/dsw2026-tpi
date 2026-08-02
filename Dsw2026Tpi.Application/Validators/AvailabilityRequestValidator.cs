@@ -32,10 +32,8 @@ public class AvailabilityRequestValidator : AbstractValidator<AvailabilityModel.
                 .WithMessage("El día indicado no es válido.");
 
             day.RuleFor(d => d)
-                .Must(d => TimeOnly.TryParse(d.StartTime, out var start)
-                        && TimeOnly.TryParse(d.EndTime, out var end)
-                        && start < end)
-                .WithMessage("La hora de inicio debe ser anterior a la hora de fin.");
+            .Must(d => d.StartTime < d.EndTime)
+            .WithMessage("La hora de inicio debe ser anterior a la hora de fin.");
         });
     }
 }

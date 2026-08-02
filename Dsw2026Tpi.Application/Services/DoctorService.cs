@@ -31,7 +31,6 @@ public class DoctorService : IDoctorService
             d.LicenseNumber,
             new DoctorModel.SpecialityDto(d.Speciality?.Id ?? Guid.Empty, d.Speciality?.Name ?? string.Empty)));
     }
-
     public async Task<DoctorModel.Response> Create(DoctorModel.Request request)
     {
         var speciality = await _unitOfWork.Repository<Speciality>().GetByIdAsync(request.SpecialityId)

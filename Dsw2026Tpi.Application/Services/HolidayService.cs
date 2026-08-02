@@ -1,4 +1,5 @@
 ﻿using Dsw2026Tpi.Application.Interfaces;
+using Dsw2026Tpi.CrossCutting.Exceptions;
 using Microsoft.Extensions.Configuration;
 using System.Text.Json;
 
@@ -10,26 +11,15 @@ public class HolidayService : IHolidayService
 
     public HolidayService(IConfiguration configuration)
     {
-        var basePath = AppDomain.CurrentDomain.BaseDirectory;
-
-        _filePath = configuration["HolidaySettings:FilePath"]
-                    ?? Path.Combine(AppContext.BaseDirectory, "Sources", "feriados.json");
-
-        if (!File.Exists(_filePath))
-        {
-            var projectRootPath = Path.GetFullPath(Path.Combine(basePath, @"..\..\..\..\Dsw2026Tpi.Data\Sources\feriados.json"));
-            if (File.Exists(projectRootPath))
-            {
-                _filePath = projectRootPath;
-            }
-        }
+        var relativePath = configuration["HolidaySettings:FilePath"] ?? Path.Combine("Sources", "feriados.json");
+        _filePath = Path.Combine(AppContext.BaseDirectory, relativePath);
     }
 
     public async Task<bool> IsHolidayAsync(DateTime date)
     {
         if (!File.Exists(_filePath))
         {
-            throw new FileNotFoundException($"No se encontró el archivo de feriados requerido en la ruta: {_filePath}");
+            throw new ConfigurationException(_filePath);
         }
 
         var jsonContent = await File.ReadAllTextAsync(_filePath);
@@ -41,7 +31,6 @@ public class HolidayService : IHolidayService
         if (holidayData?.Feriados == null) return false;
 
         string targetDateString = date.ToString("dd/MM");
-
         return holidayData.Feriados.Contains(targetDateString);
     }
 }
