@@ -14,7 +14,7 @@ public static class AppointmentMappingExtensions
 
         return new AppointmentModel.SearchResponse(
             entity.Id,
-            doctor.Speciality?.Name ?? string.Empty,
+            doctor.Specialty?.Name ?? string.Empty,
             doctor.Name,
             availableTime,
             entity.Status.ToString());

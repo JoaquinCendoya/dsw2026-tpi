@@ -39,8 +39,8 @@ public class AppointmentService : IAppointmentService
         var doctor = await _unitOfWork.Repository<Doctor>().GetByIdAsync(request.DoctorId)
                     ?? throw new EntityNotFoundException(nameof(Doctor));
 
-        var speciality = await _unitOfWork.Repository<Speciality>().GetByIdAsync(doctor.SpecialityId)
-        ?? throw new EntityNotFoundException(nameof(Speciality));
+        var specialty = await _unitOfWork.Repository<Specialty>().GetByIdAsync(doctor.SpecialtyId)
+        ?? throw new EntityNotFoundException(nameof(Specialty));
 
         string dniString = request.Patient.Dni.ToString();
         var patients = await _unitOfWork.Repository<Patient>().FindAsync(p => p.Dni == dniString);
@@ -94,7 +94,7 @@ public class AppointmentService : IAppointmentService
                    ?? throw new EntityNotFoundException(nameof(Patient));
 
         var appointments = await _unitOfWork.Repository<Appointment>()
-            .FindAsync(a => a.PatientId == patient.Id && a.Status != AppointmentStatus.Cancelled && a.Status != AppointmentStatus.Attended, "AvailabilitySlot.AvailabilityRule.Doctor.Speciality");
+            .FindAsync(a => a.PatientId == patient.Id && a.Status != AppointmentStatus.Cancelled && a.Status != AppointmentStatus.Attended, "AvailabilitySlot.AvailabilityRule.Doctor.Specialty");
 
         return appointments.Select(a => a.ToSearchResponse());
     }
@@ -102,7 +102,7 @@ public class AppointmentService : IAppointmentService
     public async Task<Pagination<AppointmentModel.SearchResponse>> GetByDateAsync(DateOnly date, int pageSize, int pageIndex)
     {
         var appointments = await _unitOfWork.Repository<Appointment>()
-            .PaginateAsync(pageSize, pageIndex, a => a.AvailabilitySlot.SlotDate == date, a => a.AvailabilitySlot.StartTime, "AvailabilitySlot.AvailabilityRule.Doctor.Speciality");
+            .PaginateAsync(pageSize, pageIndex, a => a.AvailabilitySlot.SlotDate == date, a => a.AvailabilitySlot.StartTime, "AvailabilitySlot.AvailabilityRule.Doctor.Specialty");
 
         return appointments.Map(a => a.ToSearchResponse());
     }
@@ -114,12 +114,12 @@ public class AppointmentService : IAppointmentService
         var appointments = await _unitOfWork.Repository<Appointment>().PaginateAsync(
             pageSize,
             pageIndex,
-            a => (specialtyId == null || a.AvailabilitySlot.AvailabilityRule.Doctor.SpecialityId == specialtyId) &&
+            a => (specialtyId == null || a.AvailabilitySlot.AvailabilityRule.Doctor.SpecialtyId == specialtyId) &&
                   (doctorId == null || a.AvailabilitySlot.AvailabilityRule.DoctorId == doctorId) &&
                   (dniValue == null || a.Patient.Dni == dniValue) &&
                   (date == null || a.AvailabilitySlot.SlotDate == date),
                   a => a.AvailabilitySlot.SlotDate,
-            "AvailabilitySlot.AvailabilityRule.Doctor.Speciality");
+            "AvailabilitySlot.AvailabilityRule.Doctor.Specialty");
 
         return appointments.Map(a => a.ToSearchResponse());
     }

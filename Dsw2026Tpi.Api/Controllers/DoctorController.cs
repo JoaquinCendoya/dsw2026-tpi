@@ -19,12 +19,8 @@ public class DoctorController : AppController
     }
 
     [HttpGet]
-    [AllowAnonymous]
-    [ProducesResponseType(typeof(Pagination<DoctorModel.Response>), StatusCodes.Status200OK)]
-    public async Task<IActionResult> GetAll(
-        [FromQuery] int pageSize, 
-        [FromQuery] int pageIndex, 
-        [FromQuery] string? name = null)
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    public async Task<IActionResult> GetAll([FromQuery] int pageSize, [FromQuery] int pageIndex, [FromQuery] string? name = null)
     {
         var result = await _service.GetAll(pageSize, pageIndex, name);
         return Ok(result);
@@ -62,4 +58,5 @@ public class DoctorController : AppController
         await _service.Delete(id);
         return Ok("ok");
     }
+
 }

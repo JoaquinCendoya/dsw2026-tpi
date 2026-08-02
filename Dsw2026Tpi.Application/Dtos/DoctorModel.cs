@@ -2,11 +2,11 @@
 
 public record DoctorModel
 {
-    public record Request(string Name, string LicenseNumber, Guid SpecialityId);
+    public record Request(string Name, string LicenseNumber, Guid SpecialtyId);
 
-    public record Response(Guid Id, string Name, string LicenseNumber, SpecialityDto? Speciality);
+    public record Response(Guid Id, string Name, string LicenseNumber, SpecialtyDto? Specialty);
 
-    public record SpecialityDto(Guid? Id, string? Name);
+    public record SpecialtyDto(Guid? Id, string? Name);
 
     // Requerido para listar los horarios generados
     public record AvailabilityResponse(Guid Id, string Day, string StartTime, string EndTime);
