@@ -50,7 +50,7 @@ public class DoctorService : IDoctorService
         );
     }
 
-    public async Task Update(Guid id, DoctorModel.Request request)
+    public async Task<DoctorModel.Response> Update(Guid id, DoctorModel.Request request)
     {
         var doctor = await _unitOfWork.Repository<Doctor>().GetByIdAsync(id)
             ?? throw new EntityNotFoundException(nameof(Doctor));
@@ -62,6 +62,13 @@ public class DoctorService : IDoctorService
 
         _unitOfWork.Repository<Doctor>().Update(doctor);
         await _unitOfWork.SaveChangesAsync();
+
+        return new DoctorModel.Response(
+            doctor.Id,
+            doctor.Name,
+            doctor.LicenseNumber,
+            new DoctorModel.SpecialityDto(speciality.Id, speciality.Name)
+        );
     }
 
     public async Task Delete(Guid id)

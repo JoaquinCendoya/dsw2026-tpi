@@ -37,7 +37,7 @@ public class SpecialityService : ISpecialityService
         return new SpecialityModel.Response(speciality.Id, speciality.Name, speciality.Description);
     }
 
-    public async Task Update(Guid id, SpecialityModel.Request request)
+    public async Task<SpecialityModel.Response> Update(Guid id, SpecialityModel.Request request)
     {
         var speciality = await _unitOfWork.Repository<Speciality>().GetByIdAsync(id)
             ?? throw new EntityNotFoundException(nameof(Speciality));
@@ -46,6 +46,8 @@ public class SpecialityService : ISpecialityService
 
         _unitOfWork.Repository<Speciality>().Update(speciality);
         await _unitOfWork.SaveChangesAsync();
+
+        return new SpecialityModel.Response(speciality.Id, speciality.Name, speciality.Description);
     }
 
     public async Task Delete(Guid id)
