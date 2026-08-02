@@ -42,7 +42,8 @@ public class AppointmentService : IAppointmentService
         var speciality = await _unitOfWork.Repository<Speciality>().GetByIdAsync(doctor.SpecialityId)
         ?? throw new EntityNotFoundException(nameof(Speciality));
 
-        var patients = await _unitOfWork.Repository<Patient>().FindAsync(p => p.Dni == request.Patient.Dni.ToString());
+        string dniString = request.Patient.Dni.ToString();
+        var patients = await _unitOfWork.Repository<Patient>().FindAsync(p => p.Dni == dniString);
 
         var patient = patients.FirstOrDefault()
                    ?? throw new EntityNotFoundException(nameof(Patient));
@@ -87,7 +88,8 @@ public class AppointmentService : IAppointmentService
 
     public async Task<IEnumerable<AppointmentModel.SearchResponse>> GetByPatientDniAsync(AppointmentModel.PatientDto request)
     {
-        var patients = await _unitOfWork.Repository<Patient>().FindAsync(p => p.Dni == request.Dni.ToString());
+        string dniString = request.Patient.Dni.ToString();
+        var patients = await _unitOfWork.Repository<Patient>().FindAsync(p => p.Dni == dniString);
         var patient = patients.FirstOrDefault()
                    ?? throw new EntityNotFoundException(nameof(Patient));
 
