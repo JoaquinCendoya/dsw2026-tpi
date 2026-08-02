@@ -1,4 +1,4 @@
-﻿namespace Dsw2026Tpi.Application.Dtos;
+﻿namespace Dsw2026Tpi.Application.Models;
 
 public record RegisterModel
 {

@@ -1,4 +1,4 @@
-﻿using Dsw2026Tpi.Application.Dtos;
+﻿using Dsw2026Tpi.Application.Models;
 
 namespace Dsw2026Tpi.Application.Interfaces;
 
