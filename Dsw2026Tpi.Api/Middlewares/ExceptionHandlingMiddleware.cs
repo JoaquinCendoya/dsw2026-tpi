@@ -32,14 +32,14 @@ public class ExceptionHandlingMiddleware
 
     private async Task HandleExceptionAsync(HttpContext context, Exception ex)
     {
-        ErrorResponse error = ex is AppException exApp ? 
-            exApp.Error : 
+        ErrorResponse error = ex is AppException exApp ?
+            exApp.Error :
             new ErrorResponse(nameof(ErrorCodes.UNHANDLED_ERROR), ErrorCodes.UNHANDLED_ERROR);
         var status = ex switch
         {
             ValidationException => HttpStatusCode.BadRequest,
             EntityNotFoundException => HttpStatusCode.NotFound,
-            ConflictException or AuthenticationException => HttpStatusCode.Conflict,
+            ConflictException or AuthenticationException or BusinessRuleException => HttpStatusCode.Conflict,
             AuthorizationException => HttpStatusCode.Unauthorized,
             _ => HttpStatusCode.InternalServerError,
         };

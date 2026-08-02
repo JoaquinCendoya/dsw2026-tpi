@@ -1,5 +1,6 @@
 ﻿using Dsw2026Tpi.Application.Dtos;
 using Dsw2026Tpi.Application.Interfaces;
+using Dsw2026Tpi.CrossCutting.Exceptions;
 using Dsw2026Tpi.Domain.Entities;
 using Dsw2026Tpi.Domain.Interfaces;
 
@@ -8,56 +9,90 @@ namespace Dsw2026Tpi.Application.Services;
 public class DoctorService : IDoctorService
 {
     private readonly IUnitOfWork _unitOfWork;
-    private readonly IHolidayService _holidayService;
 
-    public DoctorService(IUnitOfWork unitOfWork, IHolidayService holidayService)
+    public DoctorService(IUnitOfWork unitOfWork)
     {
         _unitOfWork = unitOfWork;
-        _holidayService = holidayService;
     }
 
     public async Task<Pagination<DoctorModel.Response>> GetAll(int pageSize, int pageIndex, string? name = null)
     {
-        var doctors = await _unitOfWork.Repository<Doctor>().PaginateAsync(pageSize, pageIndex, d => string.IsNullOrWhiteSpace(name) ||
-                                                   d.Name.Contains(name), x => x.Name, nameof(Doctor.Speciality));
+        var doctors = await _unitOfWork.Repository<Doctor>().PaginateAsync(
+            pageSize,
+            pageIndex,
+            d => string.IsNullOrWhiteSpace(name) || d.Name.Contains(name),
+            d => d.Name,
+            nameof(Doctor.Speciality)
+        );
 
-        return doctors.Map(d => new DoctorModel.Response(d.Id, d.Name, d.LicenseNumber,
-            new DoctorModel.SpecialityDto(d.Speciality?.Id, d.Speciality?.Name)));
+        return doctors.Map(d => new DoctorModel.Response(
+            d.Id,
+            d.Name,
+            d.LicenseNumber,
+            new DoctorModel.SpecialityDto(d.Speciality?.Id ?? Guid.Empty, d.Speciality?.Name ?? string.Empty)));
     }
-    public async Task<List<AvailabilityModel.Response>> GenerateMonthlyAvailabilityAsync(Guid doctorId, List<AvailabilityModel.Request> daysConfig)
+
+    public async Task<DoctorModel.Response> Create(DoctorModel.Request request)
     {
-        var resultList = new List<AvailabilityModel.Response>();
-        var today = DateTime.Today;
-        var endOfMonth = new DateTime(today.Year, today.Month, DateTime.DaysInMonth(today.Year, today.Month));
+        var speciality = await _unitOfWork.Repository<Speciality>().GetByIdAsync(request.SpecialityId)
+            ?? throw new EntityNotFoundException(nameof(Speciality));
 
-        for (var date = today; date <= endOfMonth; date = date.AddDays(1))
-        {
-            if (await _holidayService.IsHolidayAsync(date))
-            {
-                continue;
-            }
+        var doctor = new Doctor(request.Name, request.LicenseNumber, speciality);
 
-            string dayOfWeek = date.DayOfWeek.ToString();
-            var configForDay = daysConfig.FirstOrDefault(d => d.Day.Equals(dayOfWeek, StringComparison.OrdinalIgnoreCase));
-
-            if (configForDay != null)
-            {
-                var startTime = configForDay.StartTime;
-                var endTime = configForDay.EndTime;
-
-                while (startTime < endTime)
-                {
-                    var slotEndTime = startTime.Add(TimeSpan.FromMinutes(30));
-
-                    resultList.Add(new AvailabilityModel.Response(date, startTime, slotEndTime));
-
-                    startTime = slotEndTime;
-                }
-            }
-        }
-
+        await _unitOfWork.Repository<Doctor>().AddAsync(doctor);
         await _unitOfWork.SaveChangesAsync();
-        return resultList;
+
+        return new DoctorModel.Response(
+            doctor.Id,
+            doctor.Name,
+            doctor.LicenseNumber,
+            new DoctorModel.SpecialityDto(speciality.Id, speciality.Name)
+        );
+    }
+
+    public async Task<DoctorModel.Response> Update(Guid id, DoctorModel.Request request)
+    {
+        var doctor = await _unitOfWork.Repository<Doctor>().GetByIdAsync(id)
+            ?? throw new EntityNotFoundException(nameof(Doctor));
+
+        var speciality = await _unitOfWork.Repository<Speciality>().GetByIdAsync(request.SpecialityId)
+            ?? throw new EntityNotFoundException(nameof(Speciality));
+
+        doctor.UpdateProfile(request.Name, request.LicenseNumber, speciality);
+
+        _unitOfWork.Repository<Doctor>().Update(doctor);
+        await _unitOfWork.SaveChangesAsync();
+
+        return new DoctorModel.Response(
+            doctor.Id,
+            doctor.Name,
+            doctor.LicenseNumber,
+            new DoctorModel.SpecialityDto(speciality.Id, speciality.Name)
+        );
+    }
+
+    public async Task Delete(Guid id)
+    {
+        var doctor = await _unitOfWork.Repository<Doctor>().GetByIdAsync(id)
+            ?? throw new EntityNotFoundException(nameof(Doctor));
+
+        _unitOfWork.Repository<Doctor>().Delete(doctor);
+        await _unitOfWork.SaveChangesAsync();
+    }
+
+    public async Task<IEnumerable<DoctorModel.AvailabilityResponse>> GetAvailabilities(Guid id)
+    {
+        var doctor = await _unitOfWork.Repository<Doctor>().GetByIdAsync(id)
+            ?? throw new EntityNotFoundException(nameof(Doctor));
+
+        var rules = await _unitOfWork.Repository<AvailabilityRule>()
+            .FindAsync(r => r.DoctorId == id);
+
+        return rules.Select(r => new DoctorModel.AvailabilityResponse(
+            r.Id,
+            r.DayOfWeek.ToString(),
+            r.StartTime.ToString("hh\\:mm"),
+            r.EndTime.ToString("hh\\:mm")
+        ));
     }
 }
-
