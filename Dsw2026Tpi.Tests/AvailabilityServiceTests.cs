@@ -5,95 +5,94 @@ using Dsw2026Tpi.Domain.Entities;
 using Dsw2026Tpi.Domain.Interfaces;
 using NSubstitute;
 
-namespace Dsw2026Tpi.Tests;
-
-public class AvailabilityServiceTests
+namespace Dsw2026Tpi.Tests
 {
-    private readonly IUnitOfWork _mockUnitOfWork = Substitute.For<IUnitOfWork>();
-    private readonly IHolidayService _mockHolidayService = Substitute.For<IHolidayService>();
-
-    private readonly IRepository<Doctor> _mockDoctorRepo = Substitute.For<IRepository<Doctor>>();
-    private readonly IRepository<AvailabilityRule> _mockRuleRepo = Substitute.For<IRepository<AvailabilityRule>>();
-    private readonly IRepository<AvailabilitySlot> _mockSlotRepo = Substitute.For<IRepository<AvailabilitySlot>>();
-
-    private readonly Guid _testDoctorId = Guid.NewGuid();
-    private readonly string _testDiaAtencion = DateTime.Today.DayOfWeek.ToString();
-    private readonly TimeSpan _testHoraInicio = new TimeSpan(9, 0, 0);
-    private readonly TimeSpan _testHoraFin = new TimeSpan(11, 0, 0);
-
-    private readonly AvailabilityService _service;
-
-    public AvailabilityServiceTests()
+    public class AvailabilityServiceTests
     {
-        _mockUnitOfWork.Repository<Doctor>().Returns(_mockDoctorRepo);
-        _mockUnitOfWork.Repository<AvailabilityRule>().Returns(_mockRuleRepo);
-        _mockUnitOfWork.Repository<AvailabilitySlot>().Returns(_mockSlotRepo);
+        private readonly IUnitOfWork _mockUnitOfWork = Substitute.For<IUnitOfWork>();
+        private readonly IHolidayService _mockHolidayService = Substitute.For<IHolidayService>();
 
-        _service = new AvailabilityService(_mockUnitOfWork, _mockHolidayService);
-    }
+        private readonly IRepository<Doctor> _mockDoctorRepo = Substitute.For<IRepository<Doctor>>();
+        private readonly IRepository<AvailabilityRule> _mockRuleRepo = Substitute.For<IRepository<AvailabilityRule>>();
+        private readonly IRepository<AvailabilitySlot> _mockSlotRepo = Substitute.For<IRepository<AvailabilitySlot>>();
 
-    [Fact]
-    public async Task GenerateMonthlyAvailabilityAsync_CuandoEsDiaHabil_EntoncesSeFraccionaEnBloquesDe30Minutos()
-    {
-        var request = new AvailabilityModel.Request(
-            _testDoctorId,
-            new List<AvailabilityModel.DayConfig>
-            {
-                new AvailabilityModel.DayConfig(_testDiaAtencion, _testHoraInicio, _testHoraFin)
-            }
-        );
+        private readonly Guid _testDoctorId = Guid.NewGuid();
+        private readonly string _testDiaAtencion = DateTime.Today.DayOfWeek.ToString();
+        private readonly TimeSpan _testHoraInicio = new TimeSpan(9, 0, 0);
+        private readonly TimeSpan _testHoraFin = new TimeSpan(11, 0, 0);
 
-        _mockDoctorRepo.GetByIdAsync(_testDoctorId).Returns(new Doctor("Dr. Test", "MP-123", null!, _testDoctorId));
-        _mockHolidayService.IsHolidayAsync(Arg.Any<DateTime>()).Returns(Task.FromResult(false));
+        private readonly Specialty _testSpecialty = new Specialty("Cardiología", "Descripción válida de prueba");
 
-        var result = await _service.GenerateMonthlyAvailabilityAsync(request);
+        private readonly AvailabilityService _service;
 
-        Assert.NotEmpty(result);
+        public AvailabilityServiceTests()
+        {
+            _mockUnitOfWork.Repository<Doctor>().Returns(_mockDoctorRepo);
+            _mockUnitOfWork.Repository<AvailabilityRule>().Returns(_mockRuleRepo);
+            _mockUnitOfWork.Repository<AvailabilitySlot>().Returns(_mockSlotRepo);
 
-        await _mockSlotRepo.Received().AddAsync(
-            Arg.Is<AvailabilitySlot>(s => (s.EndTime - s.StartTime) == TimeSpan.FromMinutes(30))
-        );
+            _mockDoctorRepo.GetByIdAsync(_testDoctorId)
+                .Returns(Task.FromResult<Doctor?>(new Doctor("Dr. Test", "MP-123", _testSpecialty, _testDoctorId)));
 
-        await _mockUnitOfWork.Received(1).SaveChangesAsync();
-    }
+            _service = new AvailabilityService(_mockUnitOfWork, _mockHolidayService);
+        }
 
-    [Fact]
-    public async Task GenerateMonthlyAvailabilityAsync_CuandoEsFeriado_EntoncesNoSeAgreganTurnos()
-    {
-        var request = new AvailabilityModel.Request(
-            _testDoctorId,
-            new List<AvailabilityModel.DayConfig>
-            {
-                new AvailabilityModel.DayConfig(_testDiaAtencion, _testHoraInicio, _testHoraFin)
-            }
-        );
+        [Fact]
+        public async Task GenerateMonthlyAvailabilityAsync_CuandoEsDiaHabil_EntoncesSeFraccionaEnBloquesDe30Minutos()
+        {
+            var request = new AvailabilityModel.Request(
+                _testDoctorId,
+                new List<AvailabilityModel.DayConfig>
+                {
+                    new AvailabilityModel.DayConfig(_testDiaAtencion, _testHoraInicio, _testHoraFin)
+                }
+            );
 
-        _mockDoctorRepo.GetByIdAsync(_testDoctorId).Returns(new Doctor("Dr. Test", "MP-123", null!, _testDoctorId));
+            _mockHolidayService.IsHolidayAsync(Arg.Any<DateTime>()).Returns(Task.FromResult(false));
 
-        _mockHolidayService.IsHolidayAsync(Arg.Any<DateTime>()).Returns(Task.FromResult(true));
+            var result = await _service.GenerateMonthlyAvailabilityAsync(request);
 
-        var result = await _service.GenerateMonthlyAvailabilityAsync(request);
+            Assert.NotEmpty(result);
+            await _mockSlotRepo.Received().AddAsync(
+                Arg.Is<AvailabilitySlot>(s => s != null && (s.EndTime - s.StartTime) == TimeSpan.FromMinutes(30))
+            );
 
-        Assert.Empty(result);
+            await _mockUnitOfWork.Received(1).SaveChangesAsync();
+        }
 
-        await _mockSlotRepo.DidNotReceive().AddAsync(Arg.Any<AvailabilitySlot>());
-    }
+        [Fact]
+        public async Task GenerateMonthlyAvailabilityAsync_CuandoEsFeriado_EntoncesNoSeAgreganTurnos()
+        {
+            var request = new AvailabilityModel.Request(
+                _testDoctorId,
+                new List<AvailabilityModel.DayConfig>
+                {
+                    new AvailabilityModel.DayConfig(_testDiaAtencion, _testHoraInicio, _testHoraFin)
+                }
+            );
 
-    [Fact]
-    public async Task GenerateMonthlyAvailabilityAsync_CuandoHorarioEsInvertido_EntoncesProduceUnaExcepcion()
-    {
-        var request = new AvailabilityModel.Request(
-            _testDoctorId,
-            new List<AvailabilityModel.DayConfig>
-            {
-                new AvailabilityModel.DayConfig(_testDiaAtencion, _testHoraFin, _testHoraInicio)
-            }
-        );
+            _mockHolidayService.IsHolidayAsync(Arg.Any<DateTime>()).Returns(Task.FromResult(true));
 
-        _mockDoctorRepo.GetByIdAsync(_testDoctorId).Returns(new Doctor("Dr. Test", "MP-123", null!, _testDoctorId));
+            var result = await _service.GenerateMonthlyAvailabilityAsync(request);
 
-        await Assert.ThrowsAsync<ArgumentException>(() =>
-            _service.GenerateMonthlyAvailabilityAsync(request)
-        );
+            Assert.Empty(result);
+            await _mockSlotRepo.DidNotReceive().AddAsync(Arg.Any<AvailabilitySlot>());
+        }
+
+        [Fact]
+        public async Task GenerateMonthlyAvailabilityAsync_CuandoHorarioEsInvertido_EntoncesProduceUnaExcepcion()
+        {
+            var request = new AvailabilityModel.Request(
+                _testDoctorId,
+                new List<AvailabilityModel.DayConfig>
+                {
+                    new AvailabilityModel.DayConfig(_testDiaAtencion, _testHoraFin, _testHoraInicio)
+                }
+            );
+
+            await Assert.ThrowsAsync<ArgumentException>(() =>
+                _service.GenerateMonthlyAvailabilityAsync(request)
+            );
+        }
     }
 }

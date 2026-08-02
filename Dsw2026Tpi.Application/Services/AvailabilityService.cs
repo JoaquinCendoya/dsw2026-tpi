@@ -37,6 +37,9 @@ public class AvailabilityService : IAvailabilityService
             var ruleStartTime = TimeOnly.FromTimeSpan(dayConfig.StartTime);
             var ruleEndTime = TimeOnly.FromTimeSpan(dayConfig.EndTime);
 
+            if (ruleStartTime >= ruleEndTime)
+                throw new ArgumentException("El horario de inicio debe ser menor al de fin.");
+
             var rule = new AvailabilityRule(
                 doctor,                 
                 today.Month,
