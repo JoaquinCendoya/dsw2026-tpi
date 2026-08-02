@@ -6,8 +6,8 @@ public class Doctor : EntityBase
 {
     public string Name { get; private set; }
     public string LicenseNumber { get; private set; }
-    public Guid SpecialityId { get; private set; }
-    public Speciality Speciality { get; private set; }
+    public Guid SpecialtyId { get; private set; }
+    public Specialty Specialty { get; private set; }
 
     #region Constructor for EF
 #pragma warning disable CS8618
@@ -15,12 +15,12 @@ public class Doctor : EntityBase
 #pragma warning restore CS8618
     #endregion
 
-    public Doctor(string name, string licenseNumber, Speciality speciality, Guid? id = null) : base(id)
+    public Doctor(string name, string licenseNumber, Specialty specialty, Guid? id = null) : base(id)
     {
-        UpdateProfile(name, licenseNumber, speciality);
+        UpdateProfile(name, licenseNumber, specialty);
     }
 
-    public void UpdateProfile(string name, string licenseNumber, Speciality speciality)
+    public void UpdateProfile(string name, string licenseNumber, Specialty specialty)
     {
         if (string.IsNullOrWhiteSpace(name))
             throw new ValidationException("INVALID_DOCTOR_NAME", "INVALID_DOCTOR_NAME")
@@ -30,13 +30,13 @@ public class Doctor : EntityBase
             throw new ValidationException("INVALID_LICENSE_NUMBER", "INVALID_LICENSE_NUMBER")
                 .WithDetail("licenseNumber", "required");
 
-        if (speciality == null)
-            throw new BusinessRuleException("INVALID_SPECIALITY", "INVALID_SPECIALITY")
-                .WithDetail("speciality", "required");
+        if (specialty == null)
+            throw new BusinessRuleException("INVALID_SPECIALTY", "INVALID_SPECIALTY")
+                .WithDetail("specialty", "required");
 
         Name = name;
         LicenseNumber = licenseNumber;
-        Speciality = speciality;
-        SpecialityId = speciality.Id;
+        Specialty = specialty;
+        SpecialtyId = specialty.Id;
     }
 }

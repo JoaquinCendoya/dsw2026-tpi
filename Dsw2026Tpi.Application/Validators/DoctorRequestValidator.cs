@@ -13,11 +13,11 @@ public class DoctorRequestValidator : AbstractValidator<DoctorModel.Request>
             .NotEmpty().WithMessage("El nombre es obligatorio.")
             .Length(3, 100).WithMessage("El nombre debe tener entre 3 y 100 caracteres.");
 
-        RuleFor(x => x.SpecialityId)
+        RuleFor(x => x.SpecialtyId)
             .MustAsync(async (id, cancellation) =>
             {
-                var speciality = await unitOfWork.Repository<Speciality>().GetByIdAsync(id);
-                return speciality is not null;
+                var specialty = await unitOfWork.Repository<Specialty>().GetByIdAsync(id);
+                return specialty is not null;
             })
             .WithMessage("La especialidad indicada no existe.");
     }

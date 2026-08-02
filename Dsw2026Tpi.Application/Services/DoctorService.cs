@@ -22,21 +22,21 @@ public class DoctorService : IDoctorService
             pageIndex,
             d => string.IsNullOrWhiteSpace(name) || d.Name.Contains(name),
             d => d.Name,
-            nameof(Doctor.Speciality)
+            nameof(Doctor.Specialty)
         );
 
         return doctors.Map(d => new DoctorModel.Response(
             d.Id,
             d.Name,
             d.LicenseNumber,
-            new DoctorModel.SpecialityDto(d.Speciality?.Id ?? Guid.Empty, d.Speciality?.Name ?? string.Empty)));
+            new DoctorModel.SpecialtyDto(d.Specialty?.Id ?? Guid.Empty, d.Specialty?.Name ?? string.Empty)));
     }
     public async Task<DoctorModel.Response> Create(DoctorModel.Request request)
     {
-        var speciality = await _unitOfWork.Repository<Speciality>().GetByIdAsync(request.SpecialityId)
-            ?? throw new EntityNotFoundException(nameof(Speciality));
+        var specialty = await _unitOfWork.Repository<Specialty>().GetByIdAsync(request.SpecialtyId)
+            ?? throw new EntityNotFoundException(nameof(Specialty));
 
-        var doctor = new Doctor(request.Name, request.LicenseNumber, speciality);
+        var doctor = new Doctor(request.Name, request.LicenseNumber, specialty);
 
         await _unitOfWork.Repository<Doctor>().AddAsync(doctor);
         await _unitOfWork.SaveChangesAsync();
@@ -45,7 +45,7 @@ public class DoctorService : IDoctorService
             doctor.Id,
             doctor.Name,
             doctor.LicenseNumber,
-            new DoctorModel.SpecialityDto(speciality.Id, speciality.Name)
+            new DoctorModel.SpecialtyDto(specialty.Id, specialty.Name)
         );
     }
 
@@ -54,10 +54,10 @@ public class DoctorService : IDoctorService
         var doctor = await _unitOfWork.Repository<Doctor>().GetByIdAsync(id)
             ?? throw new EntityNotFoundException(nameof(Doctor));
 
-        var speciality = await _unitOfWork.Repository<Speciality>().GetByIdAsync(request.SpecialityId)
-            ?? throw new EntityNotFoundException(nameof(Speciality));
+        var specialty = await _unitOfWork.Repository<Specialty>().GetByIdAsync(request.SpecialtyId)
+            ?? throw new EntityNotFoundException(nameof(Specialty));
 
-        doctor.UpdateProfile(request.Name, request.LicenseNumber, speciality);
+        doctor.UpdateProfile(request.Name, request.LicenseNumber, specialty);
 
         _unitOfWork.Repository<Doctor>().Update(doctor);
         await _unitOfWork.SaveChangesAsync();
@@ -66,7 +66,7 @@ public class DoctorService : IDoctorService
             doctor.Id,
             doctor.Name,
             doctor.LicenseNumber,
-            new DoctorModel.SpecialityDto(speciality.Id, speciality.Name)
+            new DoctorModel.SpecialtyDto(specialty.Id, specialty.Name)
         );
     }
 

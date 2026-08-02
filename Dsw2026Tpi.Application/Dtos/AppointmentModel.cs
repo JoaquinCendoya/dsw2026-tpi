@@ -14,7 +14,7 @@ namespace Dsw2026Tpi.Application.Dtos
 
         public record SearchResponse(
             Guid Id,
-            string Speciality,
+            string Specialty,
             string Doctor,
             DateTime AvailableTime,
             string Status

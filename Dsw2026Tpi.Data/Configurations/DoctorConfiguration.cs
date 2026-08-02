@@ -16,9 +16,9 @@ namespace Dsw2026Tpi.Data.Configurations
             builder.Property(d => d.Name).IsRequired().HasMaxLength(100);
             builder.Property(d => d.LicenseNumber).HasMaxLength(50).IsRequired(false);
 
-            builder.HasOne(d => d.Speciality)
+            builder.HasOne(d => d.Specialty)
                    .WithMany()
-                   .HasForeignKey(d => d.SpecialityId)
+                   .HasForeignKey(d => d.SpecialtyId)
                    .OnDelete(DeleteBehavior.Restrict);
         }
     }
