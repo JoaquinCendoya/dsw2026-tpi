@@ -17,7 +17,7 @@ public class AppointmentRequestValidator : AbstractValidator<AppointmentModel.Re
             })
             .WithMessage("El médico indicado no existe.");
 
-        RuleFor(x => x.AvailabilityId)
+        RuleFor(x => x.AvailabilitySlotId)
             .NotEmpty().WithMessage("Debe indicar un horario disponible.");
 
         RuleFor(x => x.Patient.Dni)
