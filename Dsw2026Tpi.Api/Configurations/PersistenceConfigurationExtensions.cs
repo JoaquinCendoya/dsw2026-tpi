@@ -27,7 +27,7 @@ public static class PersistenceConfigurationExtensions
             options.UseSqlServer(connectionString);
             options.UseSeeding((c, t) =>
             {
-                c.Seedwork<IdentityRole>("Sources\\roles.json");
+                c.Seedwork<IdentityRole>(Path.Combine("Sources", "roles.json"));
             });
         });
         // Registro de los patrones de arquitectura base

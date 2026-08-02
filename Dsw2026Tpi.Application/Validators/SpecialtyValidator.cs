@@ -3,9 +3,9 @@ using FluentValidation;
 
 namespace Dsw2026Tpi.Application.Validators;
 
-public class SpecialityRequestValidator : AbstractValidator<SpecialityModel.Request>
+public class SpecialtyRequestValidator : AbstractValidator<SpecialtyModel.Request>
 {
-    public SpecialityRequestValidator()
+    public SpecialtyRequestValidator()
     {
         RuleFor(x => x.Name)
             .NotEmpty().WithMessage("El nombre es obligatorio.")

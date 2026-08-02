@@ -4,13 +4,13 @@ using Microsoft.EntityFrameworkCore.Metadata.Builders;
 
 namespace Dsw2026Tpi.Data.Configurations
 {
-    public class SpecialityConfiguration : EntityBaseConfiguration<Speciality>
+    public class SpecialtyConfiguration : EntityBaseConfiguration<Specialty>
     {
-        public override void Configure(EntityTypeBuilder<Speciality> builder)
+        public override void Configure(EntityTypeBuilder<Specialty> builder)
         {
             base.Configure(builder);
 
-            builder.ToTable("Specialities");
+            builder.ToTable("Specialties");
 
             builder.Property(s => s.Name).IsRequired().HasMaxLength(100);
             builder.HasIndex(s => s.Name).IsUnique();

@@ -11,11 +11,11 @@ public static class DoctorMappingExtensions
             entity.Id,
             entity.Name,
             entity.LicenseNumber,
-            new DoctorModel.SpecialityDto(entity.Speciality?.Id, entity.Speciality?.Name));
+            new DoctorModel.SpecialtyDto(entity.Specialty?.Id, entity.Specialty?.Name));
     }
 
-    public static Doctor ToEntity(this DoctorModel.Request dto, Speciality speciality)
+    public static Doctor ToEntity(this DoctorModel.Request dto, Specialty specialty)
     {
-        return new Doctor(dto.Name, dto.LicenseNumber, speciality);
+        return new Doctor(dto.Name, dto.LicenseNumber, specialty);
     }
 }
