@@ -10,6 +10,7 @@ namespace Dsw2026Tpi.Api.Controllers;
 
 [ApiController]
 [Route("api/appointments")]
+[EnableRateLimiting("DefaultPolicy")]
 public class AppointmentController : ControllerBase
 {
     private readonly IAppointmentService _service;

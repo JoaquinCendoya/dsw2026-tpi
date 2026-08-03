@@ -5,11 +5,13 @@ using Dsw2026Tpi.CrossCutting.Models;
 using Dsw2026Tpi.Domain.Entities;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.RateLimiting;
 
 namespace Dsw2026Tpi.Api.Controllers;
 
 [Route("api/doctors")]
 [Authorize(Policy = Policies.AdminPolicy)]
+[EnableRateLimiting("DefaultPolicy")]
 public class DoctorController : AppController
 {
     private readonly IDoctorService _service;

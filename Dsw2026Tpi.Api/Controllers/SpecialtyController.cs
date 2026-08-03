@@ -4,12 +4,14 @@ using Dsw2026Tpi.CrossCutting.Identity;
 using Dsw2026Tpi.CrossCutting.Models;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.RateLimiting;
 
 namespace Dsw2026Tpi.Api.Controllers;
 
 [ApiController]
 [Route("api/specialties")]
 [Authorize(Policy = Policies.AdminPolicy)]
+[EnableRateLimiting("DefaultPolicy")]
 public class SpecialtyController : ControllerBase
 {
     private readonly ISpecialtyService _service;
