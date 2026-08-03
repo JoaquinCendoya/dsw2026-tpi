@@ -1,7 +1,9 @@
 ﻿using Dsw2026Tpi.Application.Models;
 using Dsw2026Tpi.Application.Interfaces;
+using Dsw2026Tpi.Application.Mappings;
 using Dsw2026Tpi.CrossCutting.Exceptions;
 using Dsw2026Tpi.Domain.Entities;
+using Dsw2026Tpi.Domain.Enums;
 using Dsw2026Tpi.Domain.Interfaces;
 
 namespace Dsw2026Tpi.Application.Services;
@@ -15,21 +17,18 @@ public class DoctorService : IDoctorService
         _unitOfWork = unitOfWork;
     }
 
-    public async Task<Pagination<DoctorModel.Response>> GetAll(int pageSize, int pageIndex, string? name = null)
+    public async Task<Pagination<DoctorModel.Response>> GetAll(DoctorModel.SearchRequest request)
     {
         var doctors = await _unitOfWork.Repository<Doctor>().PaginateAsync(
-            pageSize,
-            pageIndex,
-            d => string.IsNullOrWhiteSpace(name) || d.Name.Contains(name),
+            request.PageSize,
+            request.PageIndex,
+            d => string.IsNullOrWhiteSpace(request.Name) || d.Name.Contains(request.Name),
             d => d.Name,
+            request.Descending,
             nameof(Doctor.Specialty)
         );
 
-        return doctors.Map(d => new DoctorModel.Response(
-            d.Id,
-            d.Name,
-            d.LicenseNumber,
-            new DoctorModel.SpecialtyDto(d.Specialty?.Id ?? Guid.Empty, d.Specialty?.Name ?? string.Empty)));
+        return doctors.Map(d => d.ToResponse());
     }
     public async Task<DoctorModel.Response> Create(DoctorModel.Request request)
     {
@@ -41,12 +40,7 @@ public class DoctorService : IDoctorService
         await _unitOfWork.Repository<Doctor>().AddAsync(doctor);
         await _unitOfWork.SaveChangesAsync();
 
-        return new DoctorModel.Response(
-            doctor.Id,
-            doctor.Name,
-            doctor.LicenseNumber,
-            new DoctorModel.SpecialtyDto(specialty.Id, specialty.Name)
-        );
+        return doctor.ToResponse();
     }
 
     public async Task<DoctorModel.Response> Update(Guid id, DoctorModel.Request request)
@@ -62,12 +56,7 @@ public class DoctorService : IDoctorService
         _unitOfWork.Repository<Doctor>().Update(doctor);
         await _unitOfWork.SaveChangesAsync();
 
-        return new DoctorModel.Response(
-            doctor.Id,
-            doctor.Name,
-            doctor.LicenseNumber,
-            new DoctorModel.SpecialtyDto(specialty.Id, specialty.Name)
-        );
+        return doctor.ToResponse();
     }
 
     public async Task Delete(Guid id)
@@ -84,14 +73,16 @@ public class DoctorService : IDoctorService
         var doctor = await _unitOfWork.Repository<Doctor>().GetByIdAsync(id)
             ?? throw new EntityNotFoundException(nameof(Doctor));
 
-        var rules = await _unitOfWork.Repository<AvailabilityRule>()
-            .FindAsync(r => r.DoctorId == id);
+        var today = DateOnly.FromDateTime(DateTime.Today);
 
-        return rules.Select(r => new DoctorModel.AvailabilityResponse(
-            r.Id,
-            r.DayOfWeek.ToString(),
-            r.StartTime.ToString("hh\\:mm"),
-            r.EndTime.ToString("hh\\:mm")
-        ));
+        var slots = await _unitOfWork.Repository<AvailabilitySlot>().FindAsync(
+            s => s.AvailabilityRule.DoctorId == id &&
+                 s.SlotDate >= today &&
+                 s.Status == SlotStatus.Available);
+
+        return slots
+            .OrderBy(s => s.SlotDate)
+            .ThenBy(s => s.StartTime)
+            .Select(s => s.ToResponse());
     }
 }

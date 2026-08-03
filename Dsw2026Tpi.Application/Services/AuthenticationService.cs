@@ -53,6 +53,8 @@ public class AuthenticationService : IAuthenticationService
 
         var token  = _jwtService.GenerateToken(user.UserName!, role);
 
+        _logger.LogInformation("Login de administrador exitoso: {Email}", request.Email);
+
         return new LoginAdminModel.Response(
             token,
             role
@@ -103,6 +105,8 @@ public class AuthenticationService : IAuthenticationService
                 await _userManager.DeleteAsync(user);
                 throw; // Lanzar para que sea capturado por el middleware global
             }
+
+            _logger.LogInformation("Paciente registrado automáticamente: {Email}, Dni: {Dni}", request.Email, request.Dni);
         }
         else
         {
@@ -115,6 +119,8 @@ public class AuthenticationService : IAuthenticationService
                 _logger.LogError("Intento de login fallido. DNI no coincide para el email: {Email}", request.Email);
                 throw new AuthenticationException();
             }
+
+            _logger.LogInformation("Login de paciente exitoso: {Email}", request.Email);
         }
         var role = Roles.Patient;
         var token = _jwtService.GenerateToken(user.UserName!, role);

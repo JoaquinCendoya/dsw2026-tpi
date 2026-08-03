@@ -5,11 +5,13 @@ using Dsw2026Tpi.CrossCutting.Models;
 using Dsw2026Tpi.Domain.Entities;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.RateLimiting;
 
 namespace Dsw2026Tpi.Api.Controllers;
 
 [Route("api/doctors")]
 [Authorize(Policy = Policies.AdminPolicy)]
+[EnableRateLimiting("DefaultPolicy")]
 public class DoctorController : AppController
 {
     private readonly IDoctorService _service;
@@ -22,15 +24,13 @@ public class DoctorController : AppController
     /// <summary>
     /// Obtiene un listado paginado de médicos activos.
     /// </summary>
-    /// <param name="pageSize">Cantidad de registros por página.</param>
-    /// <param name="pageIndex">Número de página a consultar.</param>
-    /// <param name="name">Filtro opcional por nombre del médico.</param>
+    /// <param name="request">Parámetros de búsqueda, paginación y orden (nombre asc/desc).</param>
     /// <response code="200">Listado paginado de médicos.</response>
     [HttpGet]
     [ProducesResponseType(StatusCodes.Status200OK)]
-    public async Task<IActionResult> GetAll([FromQuery] int pageSize, [FromQuery] int pageIndex, [FromQuery] string? name = null)
+    public async Task<IActionResult> GetAll([FromQuery] DoctorModel.SearchRequest request)
     {
-        var result = await _service.GetAll(pageSize, pageIndex, name);
+        var result = await _service.GetAll(request);
         return Ok(result);
     }
 
@@ -40,7 +40,7 @@ public class DoctorController : AppController
     /// <param name="id">Id del médico.</param>
     /// <response code="200">Disponibilidad horaria por día de la semana.</response>
     [HttpGet("{id:guid}/availabilities")]
-    [AllowAnonymous]
+    [Authorize(Policy = Policies.PatientPolicy)]
     [ProducesResponseType(typeof(IEnumerable<DoctorModel.AvailabilityResponse>), StatusCodes.Status200OK)]
     public async Task<IActionResult> GetAvailabilities([FromRoute] Guid id)
     {

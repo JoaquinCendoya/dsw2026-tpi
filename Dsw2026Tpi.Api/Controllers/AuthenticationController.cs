@@ -3,6 +3,7 @@ using Dsw2026Tpi.Application.Interfaces;
 using Dsw2026Tpi.CrossCutting.Models;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.RateLimiting;
 
 namespace Dsw2026Tpi.Api.Controllers;
 
@@ -25,6 +26,7 @@ public class AuthenticationController : ControllerBase
     /// <response code="400">Los datos enviados no son válidos.</response>
     [HttpPost("admin/register")]
     [AllowAnonymous]
+    [EnableRateLimiting("DefaultPolicy")]
     [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status400BadRequest)]
     public async Task<IActionResult> Register([FromBody] RegisterModel.Request request)
@@ -41,6 +43,7 @@ public class AuthenticationController : ControllerBase
     /// <response code="400">Los datos enviados no son válidos.</response>
     [HttpPost("admin/login")]
     [AllowAnonymous]
+    [EnableRateLimiting("AdminLoginPolicy")]
     [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status400BadRequest)]
     public async Task<IActionResult> Login([FromBody] LoginAdminModel.Request request)
@@ -57,6 +60,7 @@ public class AuthenticationController : ControllerBase
     /// <response code="400">Los datos enviados no son válidos.</response>
     [HttpPost("patient/login")]
     [AllowAnonymous]
+    [EnableRateLimiting("PatientLoginPolicy")]
     [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status400BadRequest)]
     public async Task<IActionResult> LoginPatient([FromBody] LoginPatientModel.Request request)

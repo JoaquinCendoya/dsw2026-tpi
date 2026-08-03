@@ -4,12 +4,14 @@ using Dsw2026Tpi.CrossCutting.Identity;
 using Dsw2026Tpi.CrossCutting.Models;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.RateLimiting;
 
 namespace Dsw2026Tpi.Api.Controllers;
 
 [ApiController]
 [Route("api/specialties")]
 [Authorize(Policy = Policies.AdminPolicy)]
+[EnableRateLimiting("DefaultPolicy")]
 public class SpecialtyController : ControllerBase
 {
     private readonly ISpecialtyService _service;
@@ -22,15 +24,13 @@ public class SpecialtyController : ControllerBase
     /// <summary>
     /// Obtiene un listado paginado de especialidades activas.
     /// </summary>
-    /// <param name="pageSize">Cantidad de registros por página.</param>
-    /// <param name="pageIndex">Número de página a consultar.</param>
-    /// <param name="name">Filtro opcional por nombre de la especialidad.</param>
+    /// <param name="request">Parámetros de búsqueda, paginación y orden (nombre asc/desc).</param>
     /// <response code="200">Listado paginado de especialidades.</response>
     [HttpGet]
     [ProducesResponseType(StatusCodes.Status200OK)]
-    public async Task<IActionResult> GetAll([FromQuery] int pageSize, [FromQuery] int pageIndex, [FromQuery] string name)
+    public async Task<IActionResult> GetAll([FromQuery] SpecialtyModel.SearchRequest request)
     {
-        var specialties = await _service.GetAll(pageSize, pageIndex, name);
+        var specialties = await _service.GetAll(request);
         return Ok(specialties);
     }
 

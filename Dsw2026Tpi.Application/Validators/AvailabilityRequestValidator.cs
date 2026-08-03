@@ -35,5 +35,31 @@ public class AvailabilityRequestValidator : AbstractValidator<AvailabilityModel.
             .Must(d => d.StartTime < d.EndTime)
             .WithMessage("La hora de inicio debe ser anterior a la hora de fin.");
         });
+
+        RuleFor(x => x.Days)
+            .Must(days => !HasOverlappingRanges(days))
+            .WithMessage("Los horarios indicados para un mismo día no pueden solaparse.");
+    }
+
+    private static bool HasOverlappingRanges(List<AvailabilityModel.DayConfig> days)
+    {
+        var groupedByDay = days.GroupBy(d => d.Day.ToUpperInvariant());
+
+        foreach (var group in groupedByDay)
+        {
+            var ranges = group.ToList();
+            for (var i = 0; i < ranges.Count; i++)
+            {
+                for (var j = i + 1; j < ranges.Count; j++)
+                {
+                    if (ranges[i].StartTime < ranges[j].EndTime && ranges[j].StartTime < ranges[i].EndTime)
+                    {
+                        return true;
+                    }
+                }
+            }
+        }
+
+        return false;
     }
 }

@@ -5,6 +5,7 @@ using Dsw2026Tpi.CrossCutting.Exceptions;
 using Dsw2026Tpi.Domain.Entities;
 using Dsw2026Tpi.Domain.Interfaces;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Logging;
 using Dsw2026Tpi.Domain.Enums;
 
 namespace Dsw2026Tpi.Application.Services;
@@ -12,10 +13,12 @@ namespace Dsw2026Tpi.Application.Services;
 public class AppointmentService : IAppointmentService
 {
     private readonly IUnitOfWork _unitOfWork;
+    private readonly ILogger<AppointmentService> _logger;
 
-    public AppointmentService(IUnitOfWork unitOfWork)
+    public AppointmentService(IUnitOfWork unitOfWork, ILogger<AppointmentService> logger)
     {
         _unitOfWork = unitOfWork;
+        _logger = logger;
     }
 
     public async Task<AppointmentModel.SearchResponse> BookAsync(AppointmentModel.Request request)
@@ -63,9 +66,14 @@ public class AppointmentService : IAppointmentService
         }
         catch (DbUpdateConcurrencyException)
         {
+            _logger.LogWarning("Conflicto al reservar turno. SlotId: {SlotId}, Dni: {Dni}",
+                request.AvailabilitySlotId, request.Patient.Dni);
             throw new ConflictException("El turno ya fue reservado por otro paciente.", "APPOINTMENT_CONFLICT");
         }
         await transaction.CommitAsync();
+
+        _logger.LogInformation("Turno reservado. AppointmentId: {AppointmentId}, DoctorId: {DoctorId}, Dni: {Dni}",
+            appointment.Id, request.DoctorId, request.Patient.Dni);
 
         return appointment.ToSearchResponse();
     }
@@ -84,6 +92,8 @@ public class AppointmentService : IAppointmentService
         _unitOfWork.Repository<AvailabilitySlot>().Update(availabilitySlot);
 
         await _unitOfWork.SaveChangesAsync();
+
+        _logger.LogInformation("Turno cancelado. AppointmentId: {AppointmentId}", id);
     }
 
     public async Task<IEnumerable<AppointmentModel.SearchResponse>> GetByPatientDniAsync(AppointmentModel.PatientDto request)
@@ -94,32 +104,35 @@ public class AppointmentService : IAppointmentService
                    ?? throw new EntityNotFoundException(nameof(Patient));
 
         var appointments = await _unitOfWork.Repository<Appointment>()
-            .FindAsync(a => a.PatientId == patient.Id && a.Status != AppointmentStatus.Cancelled && a.Status != AppointmentStatus.Attended, "AvailabilitySlot.AvailabilityRule.Doctor.Specialty");
+            .FindAsync(a => a.PatientId == patient.Id && a.Status != AppointmentStatus.Cancelled && a.Status != AppointmentStatus.Attended,
+                "AvailabilitySlot.AvailabilityRule.Doctor.Specialty", "Patient");
 
         return appointments.Select(a => a.ToSearchResponse());
     }
 
-    public async Task<Pagination<AppointmentModel.SearchResponse>> GetByDateAsync(DateOnly date, int pageSize, int pageIndex)
+    public async Task<Pagination<AppointmentModel.SearchResponse>> GetByDateAsync(AppointmentModel.DailyRequest request)
     {
         var appointments = await _unitOfWork.Repository<Appointment>()
-            .PaginateAsync(pageSize, pageIndex, a => a.AvailabilitySlot.SlotDate == date, a => a.AvailabilitySlot.StartTime, "AvailabilitySlot.AvailabilityRule.Doctor.Specialty");
+            .PaginateAsync(request.PageSize, request.PageIndex, a => a.AvailabilitySlot.SlotDate == request.Date, a => a.AvailabilitySlot.StartTime,
+                request.Descending, "AvailabilitySlot.AvailabilityRule.Doctor.Specialty", "Patient");
 
         return appointments.Map(a => a.ToSearchResponse());
     }
 
-    public async Task<Pagination<AppointmentModel.SearchResponse>> SearchAsync(int pageSize, int pageIndex, Guid? specialtyId, Guid? doctorId, AppointmentModel.PatientDto? dni, DateOnly? date)
+    public async Task<Pagination<AppointmentModel.SearchResponse>> SearchAsync(AppointmentModel.SearchRequest request)
     {
-        string? dniValue = dni?.Dni.ToString();
+        string? dniValue = request.Dni?.ToString();
 
         var appointments = await _unitOfWork.Repository<Appointment>().PaginateAsync(
-            pageSize,
-            pageIndex,
-            a => (specialtyId == null || a.AvailabilitySlot.AvailabilityRule.Doctor.SpecialtyId == specialtyId) &&
-                  (doctorId == null || a.AvailabilitySlot.AvailabilityRule.DoctorId == doctorId) &&
+            request.PageSize,
+            request.PageIndex,
+            a => (request.SpecialtyId == null || a.AvailabilitySlot.AvailabilityRule.Doctor.SpecialtyId == request.SpecialtyId) &&
+                  (request.DoctorId == null || a.AvailabilitySlot.AvailabilityRule.DoctorId == request.DoctorId) &&
                   (dniValue == null || a.Patient.Dni == dniValue) &&
-                  (date == null || a.AvailabilitySlot.SlotDate == date),
+                  (request.Date == null || a.AvailabilitySlot.SlotDate == request.Date),
                   a => a.AvailabilitySlot.SlotDate,
-            "AvailabilitySlot.AvailabilityRule.Doctor.Specialty");
+            request.Descending,
+            "AvailabilitySlot.AvailabilityRule.Doctor.Specialty", "Patient");
 
         return appointments.Map(a => a.ToSearchResponse());
     }
@@ -140,5 +153,8 @@ public class AppointmentService : IAppointmentService
 
         _unitOfWork.Repository<Appointment>().Update(appointment);
         await _unitOfWork.SaveChangesAsync();
+
+        _logger.LogInformation("Turno actualizado. AppointmentId: {AppointmentId}, Estado: {Status}",
+            id, attended ? "Asistido" : "Ausente");
     }
 }

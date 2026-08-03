@@ -7,6 +7,7 @@ using Dsw2026Tpi.Domain.Enums;
 using Dsw2026Tpi.Domain.Interfaces;
 using FluentAssertions;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Logging.Abstractions;
 using NSubstitute;
 using NSubstitute.ExceptionExtensions;
 using System.Linq.Expressions;
@@ -21,7 +22,7 @@ public class AppointmentServiceTests
     public AppointmentServiceTests()
     {
         _unitOfWorkSubstitute = Substitute.For<IUnitOfWork>();
-        _sut = new AppointmentService(_unitOfWorkSubstitute);
+        _sut = new AppointmentService(_unitOfWorkSubstitute, NullLogger<AppointmentService>.Instance);
     }
 
     [Fact]
@@ -67,7 +68,7 @@ public class AppointmentServiceTests
         var result = await _sut.BookAsync(request);
 
         result.Should().NotBeNull();
-        slotRepo.Received(1).Update(Arg.Is<AvailabilitySlot>(s => s.Status == SlotStatus.Booked));
+        slotRepo.Received(1).Update(Arg.Is<AvailabilitySlot>(s => s!.Status == SlotStatus.Booked));
         await appointmentRepo.Received(1).AddAsync(Arg.Any<Appointment>());
         await _unitOfWorkSubstitute.Received(1).SaveChangesAsync();
         await transactionMock.Received(1).CommitAsync();
@@ -203,8 +204,8 @@ public class AppointmentServiceTests
 
         await _sut.CancelAsync(appointmentId);
 
-        slotRepo.Received(1).Update(Arg.Is<AvailabilitySlot>(s => s.Status == SlotStatus.Available));
-        appointmentRepo.Received(1).Update(Arg.Is<Appointment>(a => a.Status == AppointmentStatus.Cancelled));
+        slotRepo.Received(1).Update(Arg.Is<AvailabilitySlot>(s => s!.Status == SlotStatus.Available));
+        appointmentRepo.Received(1).Update(Arg.Is<Appointment>(a => a!.Status == AppointmentStatus.Cancelled));
         await _unitOfWorkSubstitute.Received(1).SaveChangesAsync();
     }
 

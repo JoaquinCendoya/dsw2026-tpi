@@ -3,7 +3,9 @@ using Dsw2026Tpi.Application.Interfaces;
 using Dsw2026Tpi.Application.Services;
 using Dsw2026Tpi.Domain.Entities;
 using Dsw2026Tpi.Domain.Interfaces;
+using Microsoft.Extensions.Logging.Abstractions;
 using NSubstitute;
+using System.Linq.Expressions;
 
 namespace Dsw2026Tpi.Tests
 {
@@ -34,7 +36,10 @@ namespace Dsw2026Tpi.Tests
             _mockDoctorRepo.GetByIdAsync(_testDoctorId)
                 .Returns(Task.FromResult<Doctor?>(new Doctor("Dr. Test", "MP-123", _testSpecialty, _testDoctorId)));
 
-            _service = new AvailabilityService(_mockUnitOfWork, _mockHolidayService);
+            _mockRuleRepo.FindAsync(Arg.Any<Expression<Func<AvailabilityRule, bool>>>())
+                .Returns(new List<AvailabilityRule>());
+
+            _service = new AvailabilityService(_mockUnitOfWork, _mockHolidayService, NullLogger<AvailabilityService>.Instance);
         }
 
         [Fact]
