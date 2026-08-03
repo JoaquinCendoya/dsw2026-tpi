@@ -16,9 +16,7 @@ public class AuthenticationDbContext: IdentityDbContext<ApplicationUser>
     {
         base.OnModelCreating(builder);
 
-        builder.Entity<ApplicationUser>(b => { b.ToTable("ApplicationUsers"); });
         builder.Entity<ApplicationUser>(b => { b.ToTable("Users"); });
-        //builder.Entity<IdentityUser>(b => { b.ToTable("Users"); });
         builder.Entity<IdentityRole>(b => { b.ToTable("Roles"); });
         builder.Entity<IdentityUserRole<string>>(b => { b.ToTable("UsersRoles"); });
         builder.Entity<IdentityUserClaim<string>>(b => { b.ToTable("UsersClaims"); });
