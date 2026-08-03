@@ -22,15 +22,13 @@ public class DoctorController : AppController
     /// <summary>
     /// Obtiene un listado paginado de médicos activos.
     /// </summary>
-    /// <param name="pageSize">Cantidad de registros por página.</param>
-    /// <param name="pageIndex">Número de página a consultar.</param>
-    /// <param name="name">Filtro opcional por nombre del médico.</param>
+    /// <param name="request">Parámetros de búsqueda y paginación.</param>
     /// <response code="200">Listado paginado de médicos.</response>
     [HttpGet]
     [ProducesResponseType(StatusCodes.Status200OK)]
-    public async Task<IActionResult> GetAll([FromQuery] int pageSize, [FromQuery] int pageIndex, [FromQuery] string? name = null)
+    public async Task<IActionResult> GetAll([FromQuery] DoctorModel.SearchRequest request)
     {
-        var result = await _service.GetAll(pageSize, pageIndex, name);
+        var result = await _service.GetAll(request);
         return Ok(result);
     }
 

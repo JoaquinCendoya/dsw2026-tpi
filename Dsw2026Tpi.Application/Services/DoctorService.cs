@@ -15,12 +15,12 @@ public class DoctorService : IDoctorService
         _unitOfWork = unitOfWork;
     }
 
-    public async Task<Pagination<DoctorModel.Response>> GetAll(int pageSize, int pageIndex, string? name = null)
+    public async Task<Pagination<DoctorModel.Response>> GetAll(DoctorModel.SearchRequest request)
     {
         var doctors = await _unitOfWork.Repository<Doctor>().PaginateAsync(
-            pageSize,
-            pageIndex,
-            d => string.IsNullOrWhiteSpace(name) || d.Name.Contains(name),
+            request.PageSize,
+            request.PageIndex,
+            d => string.IsNullOrWhiteSpace(request.Name) || d.Name.Contains(request.Name),
             d => d.Name,
             nameof(Doctor.Specialty)
         );

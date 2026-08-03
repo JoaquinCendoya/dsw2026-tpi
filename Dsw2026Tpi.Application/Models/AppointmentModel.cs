@@ -1,5 +1,5 @@
-﻿namespace Dsw2026Tpi.Application.Models
-{
+﻿namespace Dsw2026Tpi.Application.Models;
+
     public record AppointmentModel
     {
         public record Request(Guid DoctorId, Guid AvailabilitySlotId, PatientDto Patient, string Reason);
@@ -16,4 +16,4 @@
             string Status
         );
     }
-}
+
