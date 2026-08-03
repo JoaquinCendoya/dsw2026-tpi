@@ -15,12 +15,12 @@ public class SpecialtyService : ISpecialtyService
         _unitOfWork = unitOfWork;
     }
 
-    public async Task<Pagination<SpecialtyModel.Response>> GetAll(int pageSize, int pageIndex, string name)
+    public async Task<Pagination<SpecialtyModel.Response>> GetAll(SpecialtyModel.SearchRequest request)
     {
         var specialties = await _unitOfWork.Repository<Specialty>().PaginateAsync(
-            pageSize,
-            pageIndex,
-            s => string.IsNullOrWhiteSpace(name) || s.Name.Contains(name),
+            request.PageSize,
+            request.PageIndex,
+            s => string.IsNullOrWhiteSpace(request.Name) || s.Name.Contains(request.Name),
             s => s.Name
         );
 

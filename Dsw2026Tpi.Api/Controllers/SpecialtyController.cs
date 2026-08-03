@@ -28,9 +28,9 @@ public class SpecialtyController : ControllerBase
     /// <response code="200">Listado paginado de especialidades.</response>
     [HttpGet]
     [ProducesResponseType(StatusCodes.Status200OK)]
-    public async Task<IActionResult> GetAll([FromQuery] int pageSize, [FromQuery] int pageIndex, [FromQuery] string name)
+    public async Task<IActionResult> GetAll([FromQuery] SpecialtyModel.SearchRequest request)
     {
-        var specialties = await _service.GetAll(pageSize, pageIndex, name);
+        var specialties = await _service.GetAll(request);
         return Ok(specialties);
     }
 
