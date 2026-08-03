@@ -18,8 +18,19 @@ namespace Dsw2026Tpi.Tests
         private readonly IRepository<AvailabilityRule> _mockRuleRepo = Substitute.For<IRepository<AvailabilityRule>>();
         private readonly IRepository<AvailabilitySlot> _mockSlotRepo = Substitute.For<IRepository<AvailabilitySlot>>();
 
+        private static readonly Dictionary<DayOfWeek, string> DiasEnEspanol = new()
+        {
+            [DayOfWeek.Monday] = "LUNES",
+            [DayOfWeek.Tuesday] = "MARTES",
+            [DayOfWeek.Wednesday] = "MIERCOLES",
+            [DayOfWeek.Thursday] = "JUEVES",
+            [DayOfWeek.Friday] = "VIERNES",
+            [DayOfWeek.Saturday] = "SABADO",
+            [DayOfWeek.Sunday] = "DOMINGO",
+        };
+
         private readonly Guid _testDoctorId = Guid.NewGuid();
-        private readonly string _testDiaAtencion = DateTime.Today.DayOfWeek.ToString();
+        private readonly string _testDiaAtencion = DiasEnEspanol[DateTime.Today.DayOfWeek];
         private readonly TimeSpan _testHoraInicio = new TimeSpan(9, 0, 0);
         private readonly TimeSpan _testHoraFin = new TimeSpan(11, 0, 0);
 
