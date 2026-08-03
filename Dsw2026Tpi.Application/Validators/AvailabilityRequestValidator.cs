@@ -1,4 +1,5 @@
-﻿using Dsw2026Tpi.Application.Models;
+﻿using Dsw2026Tpi.Application.Common;
+using Dsw2026Tpi.Application.Models;
 using Dsw2026Tpi.Domain.Entities;
 using Dsw2026Tpi.Domain.Interfaces;
 using FluentValidation;
@@ -7,11 +8,6 @@ namespace Dsw2026Tpi.Application.Validators;
 
 public class AvailabilityRequestValidator : AbstractValidator<AvailabilityModel.Request>
 {
-    private static readonly string[] ValidDays =
-    [
-        "LUNES", "MARTES", "MIERCOLES", "JUEVES", "VIERNES", "SABADO", "DOMINGO"
-    ];
-
     public AvailabilityRequestValidator(IUnitOfWork unitOfWork)
     {
         RuleFor(x => x.DoctorId)
@@ -28,7 +24,7 @@ public class AvailabilityRequestValidator : AbstractValidator<AvailabilityModel.
         RuleForEach(x => x.Days).ChildRules(day =>
         {
             day.RuleFor(d => d.Day)
-                .Must(d => ValidDays.Contains(d.ToUpper()))
+                .Must(SpanishDayOfWeek.IsValid)
                 .WithMessage("El día indicado no es válido.");
 
             day.RuleFor(d => d)

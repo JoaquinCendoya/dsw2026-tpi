@@ -1,3 +1,4 @@
+using Dsw2026Tpi.Application.Common;
 using Dsw2026Tpi.Application.Models;
 using Dsw2026Tpi.Application.Interfaces;
 using Dsw2026Tpi.CrossCutting.Exceptions;
@@ -58,7 +59,7 @@ public class AvailabilityService : IAvailabilityService
 
         foreach (var dayConfig in request.Days)
         {
-            if (!Enum.TryParse<DayOfWeek>(dayConfig.Day, true, out var dayOfWeek))
+            if (!SpanishDayOfWeek.TryParse(dayConfig.Day, out var dayOfWeek))
                 continue;
 
             var ruleStartTime = TimeOnly.FromTimeSpan(dayConfig.StartTime);
