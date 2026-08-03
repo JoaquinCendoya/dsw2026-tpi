@@ -1,5 +1,6 @@
 ﻿using Dsw2026Tpi.Application.Models;
 using Dsw2026Tpi.Application.Interfaces;
+using Dsw2026Tpi.Application.Mappings;
 using Dsw2026Tpi.CrossCutting.Exceptions;
 using Dsw2026Tpi.Domain.Entities;
 using Dsw2026Tpi.Domain.Interfaces;
@@ -24,7 +25,7 @@ public class SpecialtyService : ISpecialtyService
             s => s.Name
         );
 
-        return specialties.Map(s => new SpecialtyModel.Response(s.Id, s.Name, s.Description));
+        return specialties.Map(s => s.ToResponse());
     }
 
     public async Task<SpecialtyModel.Response> Create(SpecialtyModel.Request request)
@@ -34,7 +35,7 @@ public class SpecialtyService : ISpecialtyService
         await _unitOfWork.Repository<Specialty>().AddAsync(specialty);
         await _unitOfWork.SaveChangesAsync();
 
-        return new SpecialtyModel.Response(specialty.Id, specialty.Name, specialty.Description);
+        return specialty.ToResponse();
     }
 
     public async Task<SpecialtyModel.Response> Update(Guid id, SpecialtyModel.Request request)
@@ -47,7 +48,7 @@ public class SpecialtyService : ISpecialtyService
         _unitOfWork.Repository<Specialty>().Update(specialty);
         await _unitOfWork.SaveChangesAsync();
 
-        return new SpecialtyModel.Response(specialty.Id, specialty.Name, specialty.Description);
+        return specialty.ToResponse();
     }
 
     public async Task Delete(Guid id)

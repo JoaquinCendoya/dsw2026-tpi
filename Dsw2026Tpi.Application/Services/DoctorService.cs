@@ -1,5 +1,6 @@
 ﻿using Dsw2026Tpi.Application.Models;
 using Dsw2026Tpi.Application.Interfaces;
+using Dsw2026Tpi.Application.Mappings;
 using Dsw2026Tpi.CrossCutting.Exceptions;
 using Dsw2026Tpi.Domain.Entities;
 using Dsw2026Tpi.Domain.Interfaces;
@@ -25,11 +26,7 @@ public class DoctorService : IDoctorService
             nameof(Doctor.Specialty)
         );
 
-        return doctors.Map(d => new DoctorModel.Response(
-            d.Id,
-            d.Name,
-            d.LicenseNumber,
-            new DoctorModel.SpecialtyDto(d.Specialty?.Id ?? Guid.Empty, d.Specialty?.Name ?? string.Empty)));
+        return doctors.Map(d => d.ToResponse());
     }
     public async Task<DoctorModel.Response> Create(DoctorModel.Request request)
     {
@@ -41,12 +38,7 @@ public class DoctorService : IDoctorService
         await _unitOfWork.Repository<Doctor>().AddAsync(doctor);
         await _unitOfWork.SaveChangesAsync();
 
-        return new DoctorModel.Response(
-            doctor.Id,
-            doctor.Name,
-            doctor.LicenseNumber,
-            new DoctorModel.SpecialtyDto(specialty.Id, specialty.Name)
-        );
+        return doctor.ToResponse();
     }
 
     public async Task<DoctorModel.Response> Update(Guid id, DoctorModel.Request request)
@@ -62,12 +54,7 @@ public class DoctorService : IDoctorService
         _unitOfWork.Repository<Doctor>().Update(doctor);
         await _unitOfWork.SaveChangesAsync();
 
-        return new DoctorModel.Response(
-            doctor.Id,
-            doctor.Name,
-            doctor.LicenseNumber,
-            new DoctorModel.SpecialtyDto(specialty.Id, specialty.Name)
-        );
+        return doctor.ToResponse();
     }
 
     public async Task Delete(Guid id)
