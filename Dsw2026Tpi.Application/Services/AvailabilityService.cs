@@ -1,7 +1,8 @@
-﻿using Dsw2026Tpi.Application.Models;
+using Dsw2026Tpi.Application.Models;
 using Dsw2026Tpi.Application.Interfaces;
 using Dsw2026Tpi.CrossCutting.Exceptions;
 using Dsw2026Tpi.Domain.Entities;
+using Dsw2026Tpi.Domain.Enums;
 using Dsw2026Tpi.Domain.Interfaces;
 using Microsoft.Extensions.Logging;
 
@@ -20,7 +21,7 @@ public class AvailabilityService : IAvailabilityService
         _logger = logger;
     }
 
-    public async Task<List<AvailabilityModel.Response>> GenerateMonthlyAvailabilityAsync(AvailabilityModel.Request request)
+    public async Task<List<AvailabilityModel.Response>> GenerateMonthlyAvailabilityAsync(AvailabilityModel.Request request, bool overwrite = false)
     {
         var resultList = new List<AvailabilityModel.Response>();
         var today = DateTime.Today;
@@ -30,6 +31,29 @@ public class AvailabilityService : IAvailabilityService
         if (doctor == null)
         {
             throw new EntityNotFoundException("Doctor");
+        }
+
+        var existingRules = await _unitOfWork.Repository<AvailabilityRule>()
+            .FindAsync(r => r.DoctorId == request.DoctorId && r.Month == today.Month && r.Year == today.Year);
+
+        var protectedRules = new List<AvailabilityRule>();
+
+        foreach (var rule in existingRules)
+        {
+            var slots = await _unitOfWork.Repository<AvailabilitySlot>().FindAsync(s => s.AvailabilityRuleId == rule.Id);
+            var hasBookedSlots = slots.Any(s => s.Status != SlotStatus.Available);
+
+            if (!overwrite || hasBookedSlots)
+            {
+                protectedRules.Add(rule);
+                continue;
+            }
+
+            foreach (var slot in slots)
+            {
+                _unitOfWork.Repository<AvailabilitySlot>().Delete(slot);
+            }
+            _unitOfWork.Repository<AvailabilityRule>().Delete(rule);
         }
 
         foreach (var dayConfig in request.Days)
@@ -43,8 +67,18 @@ public class AvailabilityService : IAvailabilityService
             if (ruleStartTime >= ruleEndTime)
                 throw new ArgumentException("El horario de inicio debe ser menor al de fin.");
 
+            var conflictingRule = protectedRules.FirstOrDefault(r =>
+                r.DayOfWeek == dayOfWeek && ruleStartTime < r.EndTime && r.StartTime < ruleEndTime);
+
+            if (conflictingRule is not null)
+            {
+                throw new BusinessRuleException(
+                    $"El médico ya tiene disponibilidad configurada el día {dayOfWeek} entre {conflictingRule.StartTime.ToString("HH:mm")} y {conflictingRule.EndTime.ToString("HH:mm")}.",
+                    "AVAILABILITY_OVERLAP");
+            }
+
             var rule = new AvailabilityRule(
-                doctor,                 
+                doctor,
                 today.Month,
                 today.Year,
                 dayOfWeek,
@@ -68,7 +102,7 @@ public class AvailabilityService : IAvailabilityService
                     var slotDateOnly = DateOnly.FromDateTime(date);
 
                     var slot = new AvailabilitySlot(
-                        rule,          
+                        rule,
                         slotDateOnly,
                         slotStartTime,
                         slotEndTime
