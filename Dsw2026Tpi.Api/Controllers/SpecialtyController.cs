@@ -22,7 +22,7 @@ public class SpecialtyController : ControllerBase
     /// <summary>
     /// Obtiene un listado paginado de especialidades activas.
     /// </summary>
-    /// <param name="request">Parámetros de búsqueda y paginación.</param>
+    /// <param name="request">Parámetros de búsqueda, paginación y orden (nombre asc/desc).</param>
     /// <response code="200">Listado paginado de especialidades.</response>
     [HttpGet]
     [ProducesResponseType(StatusCodes.Status200OK)]

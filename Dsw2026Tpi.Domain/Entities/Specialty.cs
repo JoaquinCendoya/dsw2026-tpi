@@ -4,8 +4,8 @@ namespace Dsw2026Tpi.Domain.Entities;
 
 public class Specialty: EntityBase
 {
-    public string Name { get; private set; }
-    public string Description { get; private set; }
+    public string Name { get; private set; } = null!;
+    public string Description { get; private set; } = null!;
 
     #region Constructor for EF
 #pragma warning disable CS8618

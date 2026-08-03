@@ -11,9 +11,9 @@ public class DomainEntitiesTests
     [InlineData("")]
     [InlineData(" ")]
     [InlineData(null)]
-    public void Specialty_Constructor_RechazaNombresInvalidos(string nombreInvalido)
+    public void Specialty_Constructor_RechazaNombresInvalidos(string? nombreInvalido)
     {
-        Action action = () => new Specialty(nombreInvalido, "Descripción", Guid.NewGuid());
+        Action action = () => new Specialty(nombreInvalido!, "Descripción", Guid.NewGuid());
         action.Should().Throw<ValidationException>(); 
     }
 

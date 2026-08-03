@@ -6,6 +6,6 @@
 
         public record Response(Guid Id, string Name, string Description);
         
-        public record SearchRequest(int PageSize, int PageIndex, string? Name = null);
+        public record SearchRequest(int PageSize, int PageIndex, string? Name = null, bool Descending = false);
     }
 

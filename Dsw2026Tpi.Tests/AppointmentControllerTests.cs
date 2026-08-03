@@ -86,7 +86,7 @@ namespace Dsw2026Tpi.Tests
             )
         };
 
-            _serviceMock.GetByPatientDniAsync(Arg.Is<AppointmentModel.PatientDto>(p => p.Dni == dni))
+            _serviceMock.GetByPatientDniAsync(Arg.Is<AppointmentModel.PatientDto>(p => p!.Dni == dni))
                 .Returns(expected);
 
             // Act

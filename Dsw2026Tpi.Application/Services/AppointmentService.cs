@@ -104,7 +104,7 @@ public class AppointmentService : IAppointmentService
     {
         var appointments = await _unitOfWork.Repository<Appointment>()
             .PaginateAsync(request.PageSize, request.PageIndex, a => a.AvailabilitySlot.SlotDate == request.Date, a => a.AvailabilitySlot.StartTime,
-                "AvailabilitySlot.AvailabilityRule.Doctor.Specialty", "Patient");
+                request.Descending, "AvailabilitySlot.AvailabilityRule.Doctor.Specialty", "Patient");
 
         return appointments.Map(a => a.ToSearchResponse());
     }
@@ -121,6 +121,7 @@ public class AppointmentService : IAppointmentService
                   (dniValue == null || a.Patient.Dni == dniValue) &&
                   (request.Date == null || a.AvailabilitySlot.SlotDate == request.Date),
                   a => a.AvailabilitySlot.SlotDate,
+            request.Descending,
             "AvailabilitySlot.AvailabilityRule.Doctor.Specialty", "Patient");
 
         return appointments.Map(a => a.ToSearchResponse());

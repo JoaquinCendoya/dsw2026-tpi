@@ -63,6 +63,7 @@ public class Repository<T> : IRepository<T> where T : EntityBase
     int pageIndex,
     Expression<Func<T, bool>> predicate,
     Expression<Func<T, TKey>> sortOrder,
+    bool descending = false,
     params string[] includes)
     {
         pageSize = Math.Abs(pageSize);
@@ -75,7 +76,8 @@ public class Repository<T> : IRepository<T> where T : EntityBase
             query = query.Include(include);
         }
 
-        var filtered = query.Where(predicate).OrderBy(sortOrder);
+        var sorted = query.Where(predicate);
+        var filtered = descending ? sorted.OrderByDescending(sortOrder) : sorted.OrderBy(sortOrder);
         var total = await filtered.CountAsync();
 
         async Task<Pagination<T>> GetPage(int skip, int take)

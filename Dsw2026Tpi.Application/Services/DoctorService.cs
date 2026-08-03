@@ -24,6 +24,7 @@ public class DoctorService : IDoctorService
             request.PageIndex,
             d => string.IsNullOrWhiteSpace(request.Name) || d.Name.Contains(request.Name),
             d => d.Name,
+            request.Descending,
             nameof(Doctor.Specialty)
         );
 

@@ -22,7 +22,8 @@ public class SpecialtyService : ISpecialtyService
             request.PageSize,
             request.PageIndex,
             s => string.IsNullOrWhiteSpace(request.Name) || s.Name.Contains(request.Name),
-            s => s.Name
+            s => s.Name,
+            request.Descending
         );
 
         return specialties.Map(s => s.ToResponse());

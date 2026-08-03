@@ -22,7 +22,7 @@ public class DoctorController : AppController
     /// <summary>
     /// Obtiene un listado paginado de médicos activos.
     /// </summary>
-    /// <param name="request">Parámetros de búsqueda y paginación.</param>
+    /// <param name="request">Parámetros de búsqueda, paginación y orden (nombre asc/desc).</param>
     /// <response code="200">Listado paginado de médicos.</response>
     [HttpGet]
     [ProducesResponseType(StatusCodes.Status200OK)]

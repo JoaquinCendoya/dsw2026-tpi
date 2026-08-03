@@ -75,7 +75,7 @@ public class AppointmentController : ControllerBase
     /// <summary>
     /// Obtiene los turnos de una fecha específica (uso administrativo).
     /// </summary>
-    /// <param name="request">Datos de la consulta (fecha, tamaño de página y número de página).</param>
+    /// <param name="request">Datos de la consulta (fecha, tamaño de página, número de página y orden).</param>
     /// <response code="200">Listado paginado de turnos de la fecha indicada.</response>
     [HttpGet]
     [Authorize(Policy = Policies.AdminPolicy)]
@@ -89,7 +89,7 @@ public class AppointmentController : ControllerBase
     /// <summary>
     /// Búsqueda avanzada de turnos combinando filtros (uso administrativo).
     /// </summary>
-    /// <param name="request">Datos de la consulta (tamaño de página, número de página, y filtros).</param>
+    /// <param name="request">Datos de la consulta (tamaño de página, número de página, filtros y orden).</param>
     /// <response code="200">Listado paginado de turnos según los filtros aplicados.</response>
     [HttpGet("search")]
     [Authorize(Policy = Policies.AdminPolicy)]

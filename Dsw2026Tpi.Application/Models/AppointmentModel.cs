@@ -8,9 +8,9 @@ public record AppointmentModel
 
     public record AttendanceRequest(bool Attended);
 
-    public record DailyRequest(DateOnly Date, int PageSize, int PageIndex);
+    public record DailyRequest(DateOnly Date, int PageSize, int PageIndex, bool Descending = false);
 
-    public record SearchRequest(int PageSize, int PageIndex, Guid? SpecialtyId, Guid? DoctorId, long? Dni, DateOnly? Date);
+    public record SearchRequest(int PageSize, int PageIndex, Guid? SpecialtyId, Guid? DoctorId, long? Dni, DateOnly? Date, bool Descending = false);
 
     public record SearchResponse(
         Guid AppointmentsId,
