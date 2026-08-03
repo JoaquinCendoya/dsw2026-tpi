@@ -1,10 +1,19 @@
 using Dsw2026Tpi.Application.Models;
 using Dsw2026Tpi.Domain.Entities;
+using Dsw2026Tpi.Domain.Enums;
 
 namespace Dsw2026Tpi.Application.Mappings;
 
 public static class AppointmentMappingExtensions
 {
+    private static readonly Dictionary<AppointmentStatus, string> StatusLiterals = new()
+    {
+        [AppointmentStatus.Booked] = "BOOKED",
+        [AppointmentStatus.Cancelled] = "CANCELLED",
+        [AppointmentStatus.Attended] = "ATTENDED",
+        [AppointmentStatus.NoShow] = "NO_SHOW",
+    };
+
     public static AppointmentModel.SearchResponse ToSearchResponse(this Appointment entity)
     {
         var doctor = entity.AvailabilitySlot.AvailabilityRule.Doctor;
@@ -12,7 +21,7 @@ public static class AppointmentMappingExtensions
 
         return new AppointmentModel.SearchResponse(
             entity.Id,
-            entity.Status.ToString(),
+            StatusLiterals[entity.Status],
             new AppointmentModel.PatientSummary(long.Parse(patient.Dni), patient.FullName),
             new AppointmentModel.DoctorSummary(
                 doctor.Id,
