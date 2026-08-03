@@ -75,36 +75,28 @@ public class AppointmentController : ControllerBase
     /// <summary>
     /// Obtiene los turnos de una fecha específica (uso administrativo).
     /// </summary>
-    /// <param name="date">Fecha a consultar.</param>
-    /// <param name="pageSize">Cantidad de registros por página.</param>
-    /// <param name="pageIndex">Número de página a consultar.</param>
+    /// <param name="request">Datos de la consulta (fecha, tamaño de página y número de página).</param>
     /// <response code="200">Listado paginado de turnos de la fecha indicada.</response>
     [HttpGet]
     [Authorize(Policy = Policies.AdminPolicy)]
     [ProducesResponseType(StatusCodes.Status200OK)]
-    public async Task<IActionResult> GetByDateAsync([FromQuery] DateOnly date, [FromQuery] int pageSize, [FromQuery] int pageIndex)
+    public async Task<IActionResult> GetByDateAsync([FromQuery] AppointmentModel.DailyRequest request)
     {
-        var response = await _service.GetByDateAsync(date, pageSize, pageIndex);
+        var response = await _service.GetByDateAsync(request);
         return Ok(response);
     }
 
     /// <summary>
     /// Búsqueda avanzada de turnos combinando filtros (uso administrativo).
     /// </summary>
-    /// <param name="pageSize">Cantidad de registros por página.</param>
-    /// <param name="pageIndex">Número de página a consultar.</param>
-    /// <param name="specialtyId">Filtro opcional por especialidad.</param>
-    /// <param name="doctorId">Filtro opcional por médico.</param>
-    /// <param name="dni">Filtro opcional por DNI del paciente.</param>
-    /// <param name="date">Filtro opcional por fecha.</param>
+    /// <param name="request">Datos de la consulta (tamaño de página, número de página, y filtros).</param>
     /// <response code="200">Listado paginado de turnos según los filtros aplicados.</response>
     [HttpGet("search")]
     [Authorize(Policy = Policies.AdminPolicy)]
     [ProducesResponseType(StatusCodes.Status200OK)]
-    public async Task<IActionResult> SearchAsync([FromQuery] int pageSize, [FromQuery] int pageIndex, [FromQuery] Guid? specialtyId, [FromQuery] Guid? doctorId, [FromQuery] long? dni, [FromQuery] DateOnly? date)
+    public async Task<IActionResult> SearchAsync([FromQuery] AppointmentModel.SearchRequest request)
     {
-        AppointmentModel.PatientDto? patientDto = dni.HasValue ? new AppointmentModel.PatientDto(dni.Value) : null;
-        var response = await _service.SearchAsync(pageSize, pageIndex, specialtyId, doctorId, patientDto, date);
+        var response = await _service.SearchAsync(request);
         return Ok(response);
     }
 }

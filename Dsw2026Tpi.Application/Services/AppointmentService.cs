@@ -99,25 +99,25 @@ public class AppointmentService : IAppointmentService
         return appointments.Select(a => a.ToSearchResponse());
     }
 
-    public async Task<Pagination<AppointmentModel.SearchResponse>> GetByDateAsync(DateOnly date, int pageSize, int pageIndex)
+    public async Task<Pagination<AppointmentModel.SearchResponse>> GetByDateAsync(AppointmentModel.DailyRequest request)
     {
         var appointments = await _unitOfWork.Repository<Appointment>()
-            .PaginateAsync(pageSize, pageIndex, a => a.AvailabilitySlot.SlotDate == date, a => a.AvailabilitySlot.StartTime, "AvailabilitySlot.AvailabilityRule.Doctor.Specialty");
+            .PaginateAsync(request.PageSize, request.PageIndex, a => a.AvailabilitySlot.SlotDate == request.Date, a => a.AvailabilitySlot.StartTime, "AvailabilitySlot.AvailabilityRule.Doctor.Specialty");
 
         return appointments.Map(a => a.ToSearchResponse());
     }
 
-    public async Task<Pagination<AppointmentModel.SearchResponse>> SearchAsync(int pageSize, int pageIndex, Guid? specialtyId, Guid? doctorId, AppointmentModel.PatientDto? dni, DateOnly? date)
+    public async Task<Pagination<AppointmentModel.SearchResponse>> SearchAsync(AppointmentModel.SearchRequest request)
     {
-        string? dniValue = dni?.Dni.ToString();
+        string? dniValue = request.Dni?.ToString();
 
         var appointments = await _unitOfWork.Repository<Appointment>().PaginateAsync(
-            pageSize,
-            pageIndex,
-            a => (specialtyId == null || a.AvailabilitySlot.AvailabilityRule.Doctor.SpecialtyId == specialtyId) &&
-                  (doctorId == null || a.AvailabilitySlot.AvailabilityRule.DoctorId == doctorId) &&
+            request.PageSize,
+            request.PageIndex,
+            a => (request.SpecialtyId == null || a.AvailabilitySlot.AvailabilityRule.Doctor.SpecialtyId == request.SpecialtyId) &&
+                  (request.DoctorId == null || a.AvailabilitySlot.AvailabilityRule.DoctorId == request.DoctorId) &&
                   (dniValue == null || a.Patient.Dni == dniValue) &&
-                  (date == null || a.AvailabilitySlot.SlotDate == date),
+                  (request.Date == null || a.AvailabilitySlot.SlotDate == request.Date),
                   a => a.AvailabilitySlot.SlotDate,
             "AvailabilitySlot.AvailabilityRule.Doctor.Specialty");
 
