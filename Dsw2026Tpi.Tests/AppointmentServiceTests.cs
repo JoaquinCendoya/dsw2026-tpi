@@ -7,6 +7,7 @@ using Dsw2026Tpi.Domain.Enums;
 using Dsw2026Tpi.Domain.Interfaces;
 using FluentAssertions;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Logging.Abstractions;
 using NSubstitute;
 using NSubstitute.ExceptionExtensions;
 using System.Linq.Expressions;
@@ -21,7 +22,7 @@ public class AppointmentServiceTests
     public AppointmentServiceTests()
     {
         _unitOfWorkSubstitute = Substitute.For<IUnitOfWork>();
-        _sut = new AppointmentService(_unitOfWorkSubstitute);
+        _sut = new AppointmentService(_unitOfWorkSubstitute, NullLogger<AppointmentService>.Instance);
     }
 
     [Fact]

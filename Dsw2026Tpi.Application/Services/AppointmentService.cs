@@ -5,6 +5,7 @@ using Dsw2026Tpi.CrossCutting.Exceptions;
 using Dsw2026Tpi.Domain.Entities;
 using Dsw2026Tpi.Domain.Interfaces;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Logging;
 using Dsw2026Tpi.Domain.Enums;
 
 namespace Dsw2026Tpi.Application.Services;
@@ -12,10 +13,12 @@ namespace Dsw2026Tpi.Application.Services;
 public class AppointmentService : IAppointmentService
 {
     private readonly IUnitOfWork _unitOfWork;
+    private readonly ILogger<AppointmentService> _logger;
 
-    public AppointmentService(IUnitOfWork unitOfWork)
+    public AppointmentService(IUnitOfWork unitOfWork, ILogger<AppointmentService> logger)
     {
         _unitOfWork = unitOfWork;
+        _logger = logger;
     }
 
     public async Task<AppointmentModel.SearchResponse> BookAsync(AppointmentModel.Request request)
@@ -63,9 +66,14 @@ public class AppointmentService : IAppointmentService
         }
         catch (DbUpdateConcurrencyException)
         {
+            _logger.LogWarning("Conflicto al reservar turno. SlotId: {SlotId}, Dni: {Dni}",
+                request.AvailabilitySlotId, request.Patient.Dni);
             throw new ConflictException("El turno ya fue reservado por otro paciente.", "APPOINTMENT_CONFLICT");
         }
         await transaction.CommitAsync();
+
+        _logger.LogInformation("Turno reservado. AppointmentId: {AppointmentId}, DoctorId: {DoctorId}, Dni: {Dni}",
+            appointment.Id, request.DoctorId, request.Patient.Dni);
 
         return appointment.ToSearchResponse();
     }
@@ -84,6 +92,8 @@ public class AppointmentService : IAppointmentService
         _unitOfWork.Repository<AvailabilitySlot>().Update(availabilitySlot);
 
         await _unitOfWork.SaveChangesAsync();
+
+        _logger.LogInformation("Turno cancelado. AppointmentId: {AppointmentId}", id);
     }
 
     public async Task<IEnumerable<AppointmentModel.SearchResponse>> GetByPatientDniAsync(AppointmentModel.PatientDto request)
@@ -143,5 +153,8 @@ public class AppointmentService : IAppointmentService
 
         _unitOfWork.Repository<Appointment>().Update(appointment);
         await _unitOfWork.SaveChangesAsync();
+
+        _logger.LogInformation("Turno actualizado. AppointmentId: {AppointmentId}, Estado: {Status}",
+            id, attended ? "Asistido" : "Ausente");
     }
 }

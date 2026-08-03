@@ -3,6 +3,7 @@ using Dsw2026Tpi.Application.Interfaces;
 using Dsw2026Tpi.CrossCutting.Exceptions;
 using Dsw2026Tpi.Domain.Entities;
 using Dsw2026Tpi.Domain.Interfaces;
+using Microsoft.Extensions.Logging;
 
 namespace Dsw2026Tpi.Application.Services;
 
@@ -10,11 +11,13 @@ public class AvailabilityService : IAvailabilityService
 {
     private readonly IUnitOfWork _unitOfWork;
     private readonly IHolidayService _holidayService;
+    private readonly ILogger<AvailabilityService> _logger;
 
-    public AvailabilityService(IUnitOfWork unitOfWork, IHolidayService holidayService)
+    public AvailabilityService(IUnitOfWork unitOfWork, IHolidayService holidayService, ILogger<AvailabilityService> logger)
     {
         _unitOfWork = unitOfWork;
         _holidayService = holidayService;
+        _logger = logger;
     }
 
     public async Task<List<AvailabilityModel.Response>> GenerateMonthlyAvailabilityAsync(AvailabilityModel.Request request)
@@ -81,6 +84,10 @@ public class AvailabilityService : IAvailabilityService
         }
 
         await _unitOfWork.SaveChangesAsync();
+
+        _logger.LogInformation("Disponibilidad mensual generada. DoctorId: {DoctorId}, Turnos creados: {SlotCount}",
+            request.DoctorId, resultList.Count);
+
         return resultList;
     }
 }

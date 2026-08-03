@@ -1,4 +1,4 @@
-﻿using Dsw2026Tpi.CrossCutting.Exceptions;
+using Dsw2026Tpi.CrossCutting.Exceptions;
 using Dsw2026Tpi.CrossCutting.Models;
 using Dsw2026Tpi.CrossCutting.Resources;
 using System.Net;
@@ -25,7 +25,6 @@ public class ExceptionHandlingMiddleware
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Se produjo un error durante el procesamiento de la solicitud");
             await HandleExceptionAsync(context, ex);
         }
     }
@@ -35,14 +34,29 @@ public class ExceptionHandlingMiddleware
         ErrorResponse error = ex is AppException exApp ?
             exApp.Error :
             new ErrorResponse(nameof(ErrorCodes.UNHANDLED_ERROR), ErrorCodes.UNHANDLED_ERROR);
+
         var status = ex switch
         {
             ValidationException => HttpStatusCode.BadRequest,
+            AuthenticationException => HttpStatusCode.Unauthorized,
+            AuthorizationException => HttpStatusCode.Forbidden,
             EntityNotFoundException => HttpStatusCode.NotFound,
-            ConflictException or AuthenticationException or BusinessRuleException => HttpStatusCode.Conflict,
-            AuthorizationException => HttpStatusCode.Unauthorized,
+            ConflictException or BusinessRuleException => HttpStatusCode.Conflict,
+            ConfigurationException => HttpStatusCode.InternalServerError,
             _ => HttpStatusCode.InternalServerError,
         };
+
+        if (status >= HttpStatusCode.InternalServerError)
+        {
+            _logger.LogError(ex, "Error no controlado. ErrorCode: {ErrorCode}, Path: {Path}",
+                error.ErrorCode, context.Request.Path);
+        }
+        else
+        {
+            _logger.LogWarning("Solicitud rechazada. ErrorCode: {ErrorCode}, Status: {Status}, Path: {Path}",
+                error.ErrorCode, (int)status, context.Request.Path);
+        }
+
         var result = JsonSerializer.Serialize(error);
         context.Response.ContentType = "application/json";
         context.Response.StatusCode = (int)status;
