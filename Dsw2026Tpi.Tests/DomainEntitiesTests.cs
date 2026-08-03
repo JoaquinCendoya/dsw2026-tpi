@@ -13,9 +13,8 @@ public class DomainEntitiesTests
     [InlineData(null)]
     public void Specialty_Constructor_RechazaNombresInvalidos(string nombreInvalido)
     {
-        // Se espera que la entidad rechace estados inconsistentes de forma nativa
         Action action = () => new Specialty(nombreInvalido, "Descripción", Guid.NewGuid());
-        action.Should().Throw<ValidationException>(); // O la excepción específica de su dominio
+        action.Should().Throw<ValidationException>(); 
     }
 
     [Fact]
