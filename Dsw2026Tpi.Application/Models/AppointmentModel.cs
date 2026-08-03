@@ -1,8 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Text;
-
-namespace Dsw2026Tpi.Application.Models
+﻿namespace Dsw2026Tpi.Application.Models
 {
     public record AppointmentModel
     {
