@@ -32,11 +32,14 @@ namespace Dsw2026Tpi.Tests
             );
 
             var expectedResponse = new AppointmentModel.SearchResponse(
-                Id: Guid.NewGuid(),
-                Specialty: "Cardiología",
-                Doctor: "Dr. Juan Pérez",
-                AvailableTime: new DateTime(2026, 8, 10, 9, 0, 0),
-                Status: "Confirmado"
+                AppointmentsId: Guid.NewGuid(),
+                AppointmentsStatus: "Confirmado",
+                Patient: new AppointmentModel.PatientSummary(Dni: 30123456, FullName: "Juan Pérez"),
+                Doctor: new AppointmentModel.DoctorSummary(
+                    DoctorId: Guid.NewGuid(),
+                    Name: "Dr. Juan Pérez",
+                    Specialty: new AppointmentModel.SpecialtySummary(Guid.NewGuid(), "Cardiología")
+                )
             );
 
             _serviceMock.BookAsync(request).Returns(expectedResponse);
@@ -72,11 +75,14 @@ namespace Dsw2026Tpi.Tests
             var expected = new List<AppointmentModel.SearchResponse>
         {
             new(
-                Id: Guid.NewGuid(),
-                Specialty: "Pediatría",
-                Doctor: "Dra. Ana Gómez",
-                AvailableTime: new DateTime(2026, 8, 15, 14, 30, 0),
-                Status: "Confirmado"
+                AppointmentsId: Guid.NewGuid(),
+                AppointmentsStatus: "Confirmado",
+                Patient: new AppointmentModel.PatientSummary(Dni: dni, FullName: "Ana Gómez"),
+                Doctor: new AppointmentModel.DoctorSummary(
+                    DoctorId: Guid.NewGuid(),
+                    Name: "Dra. Ana Gómez",
+                    Specialty: new AppointmentModel.SpecialtySummary(Guid.NewGuid(), "Pediatría")
+                )
             )
         };
 
@@ -95,27 +101,28 @@ namespace Dsw2026Tpi.Tests
         public async Task GetByDateAsync_RetornaOk_ConPaginacionCorrecta()
         {
             // Arrange
-            var date = new DateOnly(2026, 8, 10);
-            int pageSize = 10;
-            int pageIndex = 1;
+            var request = new AppointmentModel.DailyRequest(Date: new DateOnly(2026, 8, 10), PageSize: 10, PageIndex: 1);
 
             var data = new List<AppointmentModel.SearchResponse>
     {
         new(
-            Id: Guid.NewGuid(),
-            Specialty: "Traumatología",
-            Doctor: "Dr. Carlos Ruiz",
-            AvailableTime: new DateTime(2026, 8, 10, 11, 0, 0),
-            Status: "Confirmado"
+            AppointmentsId: Guid.NewGuid(),
+            AppointmentsStatus: "Confirmado",
+            Patient: new AppointmentModel.PatientSummary(Dni: 30123456, FullName: "Carlos Ruiz"),
+            Doctor: new AppointmentModel.DoctorSummary(
+                DoctorId: Guid.NewGuid(),
+                Name: "Dr. Carlos Ruiz",
+                Specialty: new AppointmentModel.SpecialtySummary(Guid.NewGuid(), "Traumatología")
+            )
         )
     };
 
-            var expected = new Pagination<AppointmentModel.SearchResponse>(pageSize, pageIndex, data.Count, data);
+            var expected = new Pagination<AppointmentModel.SearchResponse>(request.PageSize, request.PageIndex, data.Count, data);
 
-            _serviceMock.GetByDateAsync(date, pageSize, pageIndex).Returns(expected);
+            _serviceMock.GetByDateAsync(request).Returns(expected);
 
             // Act
-            var result = await _controller.GetByDateAsync(date, pageSize, pageIndex);
+            var result = await _controller.GetByDateAsync(request);
 
             // Assert
             var ok = result.Should().BeOfType<OkObjectResult>().Subject;
@@ -132,14 +139,21 @@ namespace Dsw2026Tpi.Tests
             var date = new DateOnly(2026, 8, 10);
             int pageSize = 10, pageIndex = 1;
 
+            var request = new AppointmentModel.SearchRequest(
+                PageSize: pageSize,
+                PageIndex: pageIndex,
+                SpecialtyId: specialtyId,
+                DoctorId: doctorId,
+                Dni: dni,
+                Date: date
+            );
+
             // Act
-            await _controller.SearchAsync(pageSize, pageIndex, specialtyId, doctorId, dni, date);
+            await _controller.SearchAsync(request);
 
             // Assert
             await _serviceMock.Received(1).SearchAsync(
-                pageSize, pageIndex, specialtyId, doctorId,
-                Arg.Is<AppointmentModel.PatientDto?>(p => p != null && p.Dni == dni),
-                date
+                Arg.Is<AppointmentModel.SearchRequest>(r => r == request)
             );
         }
 
@@ -148,15 +162,21 @@ namespace Dsw2026Tpi.Tests
         {
             // Arrange
             long? dni = null;
+            var request = new AppointmentModel.SearchRequest(
+                PageSize: 10,
+                PageIndex: 1,
+                SpecialtyId: null,
+                DoctorId: null,
+                Dni: dni,
+                Date: null
+            );
 
             // Act
-            await _controller.SearchAsync(10, 1, null, null, dni, null);
+            await _controller.SearchAsync(request);
 
             // Assert
             await _serviceMock.Received(1).SearchAsync(
-                10, 1, null, null,
-                Arg.Is<AppointmentModel.PatientDto?>(p => p == null),
-                null
+                Arg.Is<AppointmentModel.SearchRequest>(r => r == request)
             );
         }
     }

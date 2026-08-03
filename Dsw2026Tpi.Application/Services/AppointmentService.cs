@@ -94,7 +94,8 @@ public class AppointmentService : IAppointmentService
                    ?? throw new EntityNotFoundException(nameof(Patient));
 
         var appointments = await _unitOfWork.Repository<Appointment>()
-            .FindAsync(a => a.PatientId == patient.Id && a.Status != AppointmentStatus.Cancelled && a.Status != AppointmentStatus.Attended, "AvailabilitySlot.AvailabilityRule.Doctor.Specialty");
+            .FindAsync(a => a.PatientId == patient.Id && a.Status != AppointmentStatus.Cancelled && a.Status != AppointmentStatus.Attended,
+                "AvailabilitySlot.AvailabilityRule.Doctor.Specialty", "Patient");
 
         return appointments.Select(a => a.ToSearchResponse());
     }
@@ -102,7 +103,8 @@ public class AppointmentService : IAppointmentService
     public async Task<Pagination<AppointmentModel.SearchResponse>> GetByDateAsync(AppointmentModel.DailyRequest request)
     {
         var appointments = await _unitOfWork.Repository<Appointment>()
-            .PaginateAsync(request.PageSize, request.PageIndex, a => a.AvailabilitySlot.SlotDate == request.Date, a => a.AvailabilitySlot.StartTime, "AvailabilitySlot.AvailabilityRule.Doctor.Specialty");
+            .PaginateAsync(request.PageSize, request.PageIndex, a => a.AvailabilitySlot.SlotDate == request.Date, a => a.AvailabilitySlot.StartTime,
+                "AvailabilitySlot.AvailabilityRule.Doctor.Specialty", "Patient");
 
         return appointments.Map(a => a.ToSearchResponse());
     }
@@ -119,7 +121,7 @@ public class AppointmentService : IAppointmentService
                   (dniValue == null || a.Patient.Dni == dniValue) &&
                   (request.Date == null || a.AvailabilitySlot.SlotDate == request.Date),
                   a => a.AvailabilitySlot.SlotDate,
-            "AvailabilitySlot.AvailabilityRule.Doctor.Specialty");
+            "AvailabilitySlot.AvailabilityRule.Doctor.Specialty", "Patient");
 
         return appointments.Map(a => a.ToSearchResponse());
     }

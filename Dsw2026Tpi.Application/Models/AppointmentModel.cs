@@ -1,4 +1,4 @@
-﻿namespace Dsw2026Tpi.Application.Models;
+namespace Dsw2026Tpi.Application.Models;
 
 public record AppointmentModel
 {
@@ -10,13 +10,18 @@ public record AppointmentModel
 
     public record DailyRequest(DateOnly Date, int PageSize, int PageIndex);
 
-    public record SearchResponse(
-        Guid Id,
-        string Specialty,
-        string Doctor,
-        DateTime AvailableTime,
-        string Status
-    );
     public record SearchRequest(int PageSize, int PageIndex, Guid? SpecialtyId, Guid? DoctorId, long? Dni, DateOnly? Date);
-}
 
+    public record SearchResponse(
+        Guid AppointmentsId,
+        string AppointmentsStatus,
+        PatientSummary Patient,
+        DoctorSummary Doctor
+    );
+
+    public record PatientSummary(long Dni, string? FullName);
+
+    public record DoctorSummary(Guid DoctorId, string Name, SpecialtySummary Specialty);
+
+    public record SpecialtySummary(Guid SpecialtyId, string Name);
+}
