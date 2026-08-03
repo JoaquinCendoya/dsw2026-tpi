@@ -10,7 +10,6 @@ using Microsoft.AspNetCore.RateLimiting;
 namespace Dsw2026Tpi.Api.Controllers;
 
 [Route("api/doctors")]
-[Authorize(Policy = Policies.AdminPolicy)]
 [EnableRateLimiting("DefaultPolicy")]
 public class DoctorController : AppController
 {
@@ -27,6 +26,7 @@ public class DoctorController : AppController
     /// <param name="request">Parámetros de búsqueda, paginación y orden (nombre asc/desc).</param>
     /// <response code="200">Listado paginado de médicos.</response>
     [HttpGet]
+    [Authorize(Policy = Policies.AdminPolicy)]
     [ProducesResponseType(StatusCodes.Status200OK)]
     public async Task<IActionResult> GetAll([FromQuery] DoctorModel.SearchRequest request)
     {
@@ -56,6 +56,7 @@ public class DoctorController : AppController
     /// <response code="201">Médico creado exitosamente.</response>
     /// <response code="400">Los datos enviados no son válidos (ver <c>details</c> en la respuesta).</response>
     [HttpPost]
+    [Authorize(Policy = Policies.AdminPolicy)]
     [ProducesResponseType(typeof(DoctorModel.Response), StatusCodes.Status201Created)]
     [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status400BadRequest)]
     public async Task<IActionResult> Create([FromBody] DoctorModel.Request request)
@@ -73,6 +74,7 @@ public class DoctorController : AppController
     /// <response code="400">Los datos enviados no son válidos.</response>
     /// <response code="404">No existe un médico con el Id indicado.</response>
     [HttpPut("{id:guid}")]
+    [Authorize(Policy = Policies.AdminPolicy)]
     [ProducesResponseType(typeof(DoctorModel.Response), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status400BadRequest)]
     [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status404NotFound)]
@@ -89,6 +91,7 @@ public class DoctorController : AppController
     /// <response code="200">Médico eliminado exitosamente.</response>
     /// <response code="404">No existe un médico con el Id indicado.</response>
     [HttpDelete("{id:guid}")]
+    [Authorize(Policy = Policies.AdminPolicy)]
     [ProducesResponseType(typeof(string), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status404NotFound)]
     public async Task<IActionResult> Delete([FromRoute] Guid id)

@@ -65,9 +65,6 @@ public class AvailabilityService : IAvailabilityService
             var ruleStartTime = TimeOnly.FromTimeSpan(dayConfig.StartTime);
             var ruleEndTime = TimeOnly.FromTimeSpan(dayConfig.EndTime);
 
-            if (ruleStartTime >= ruleEndTime)
-                throw new ArgumentException("El horario de inicio debe ser menor al de fin.");
-
             var conflictingRule = protectedRules.FirstOrDefault(r =>
                 r.DayOfWeek == dayOfWeek && ruleStartTime < r.EndTime && r.StartTime < ruleEndTime);
 

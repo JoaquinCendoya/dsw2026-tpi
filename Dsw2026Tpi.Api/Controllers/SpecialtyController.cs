@@ -63,8 +63,8 @@ public class SpecialtyController : ControllerBase
     [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status404NotFound)]
     public async Task<IActionResult> Update(Guid id, [FromBody] SpecialtyModel.Request request)
     {
-        await _service.Update(id, request);
-        return Ok();
+        var result = await _service.Update(id, request);
+        return Ok(result);
     }
 
     /// <summary>
@@ -79,6 +79,6 @@ public class SpecialtyController : ControllerBase
     public async Task<IActionResult> Delete(Guid id)
     {
         await _service.Delete(id);
-        return Ok();
+        return Ok("ok");
     }
 }
