@@ -19,7 +19,7 @@ public class RepositoryTests
     [Fact]
     public async Task UnitOfWork_PersisteAgregadosRelacionados_EnUnaSolaTransaccion()
     {
-        // Arrange: mismo DbContext compartido entre repos y UoW, como en DI real (scoped)
+        // Arrange
         var context = CreateContext();
         var specialtyRepo = new Repository<Specialty>(context);
         var doctorRepo = new Repository<Doctor>(context);
@@ -28,12 +28,12 @@ public class RepositoryTests
         var specialty = new Specialty("Neurología", "Área del cerebro", Guid.NewGuid());
         var doctor = new Doctor("Dr. Juan Pérez", "MAT-12345", specialty);
 
-        // Act: dos agregados relacionados, un solo commit
+        // Act
         await specialtyRepo.AddAsync(specialty);
         await doctorRepo.AddAsync(doctor);
         var affectedRows = await unitOfWork.SaveChangesAsync();
 
-        // Assert: ambos persistidos, y la relación quedó correctamente enlazada
+        // Assert
         affectedRows.Should().Be(2);
 
         var savedDoctor = await context.Set<Doctor>().FirstOrDefaultAsync();
@@ -55,7 +55,7 @@ public class RepositoryTests
         // Act
         await specialtyRepo.AddAsync(new Specialty("Cardiología", "Área del corazón", Guid.NewGuid()));
 
-        // Assert: trackeado en memoria, pero no commiteado (no se llamó SaveChangesAsync)
+        // Assert
         context.ChangeTracker.Entries<Specialty>().Should().HaveCount(1);
         context.ChangeTracker.Entries<Specialty>().First().State.Should().Be(EntityState.Added);
         (await context.Set<Specialty>().CountAsync()).Should().Be(0);
@@ -72,7 +72,7 @@ public class RepositoryTests
         var repo1 = unitOfWork.Repository<Specialty>();
         var repo2 = unitOfWork.Repository<Specialty>();
 
-        // Assert: el cache interno del diccionario evita instanciar repos duplicados
+        // Assert
         repo1.Should().BeSameAs(repo2);
     }
 
@@ -92,7 +92,7 @@ public class RepositoryTests
         specialtyRepo.Delete(specialty);
         await unitOfWork.SaveChangesAsync();
 
-        // Assert: sigue en la tabla físicamente (soft delete), pero el query filter global la excluye
+        // Assert
         var raw = await context.Set<Specialty>().IgnoreQueryFilters().FirstOrDefaultAsync();
         raw.Should().NotBeNull();
         raw!.Deleted.Should().BeTrue();
@@ -100,7 +100,7 @@ public class RepositoryTests
         var visible = await specialtyRepo.GetAllAsync();
         visible.Should().NotContain(s => s.Id == specialty.Id);
 
-        // Confirma que el query filter global también actúa sin pasar por el repo
+        // Confirma que el query filter global tambien actua sin pasar por el repo
         var directQuery = await context.Set<Specialty>().FirstOrDefaultAsync();
         directQuery.Should().BeNull();
     }
