@@ -252,11 +252,11 @@ public class AppointmentServiceTests
         var slot = new AvailabilitySlot(rule, DateOnly.FromDateTime(DateTime.UtcNow.AddDays(2)), new TimeOnly(10, 0), new TimeOnly(11, 0), slotId);
         var patient = new Patient(Guid.NewGuid(), "12345678", "Juan Perez", "555-1234", Guid.NewGuid());
 
-        // 2. Creación de Mocks
+        // 2. CreaciOn de Mocks
         var slotRepo = Substitute.For<IRepository<AvailabilitySlot>>();
         var ruleRepo = Substitute.For<IRepository<AvailabilityRule>>();
         var docRepo = Substitute.For<IRepository<Doctor>>();
-        var specRepo = Substitute.For<IRepository<Specialty>>(); // <-- Repositorio agregado
+        var specRepo = Substitute.For<IRepository<Specialty>>(); 
         var patientRepo = Substitute.For<IRepository<Patient>>();
         var transactionMock = Substitute.For<ITransaction>();
 
@@ -264,18 +264,18 @@ public class AppointmentServiceTests
         slotRepo.GetByIdAsync(slotId).Returns(slot);
         ruleRepo.GetByIdAsync(ruleId).Returns(rule);
         docRepo.GetByIdAsync(doctorId).Returns(doctor);
-        specRepo.GetByIdAsync(doctor.SpecialtyId).Returns(specialty); // <-- Retorno configurado
+        specRepo.GetByIdAsync(doctor.SpecialtyId).Returns(specialty); 
         patientRepo.FindAsync(Arg.Any<System.Linq.Expressions.Expression<Func<Patient, bool>>>()).Returns(new List<Patient> { patient });
 
         // 4. Inyección en el UnitOfWork
         _unitOfWorkSubstitute.Repository<AvailabilitySlot>().Returns(slotRepo);
         _unitOfWorkSubstitute.Repository<AvailabilityRule>().Returns(ruleRepo);
         _unitOfWorkSubstitute.Repository<Doctor>().Returns(docRepo);
-        _unitOfWorkSubstitute.Repository<Specialty>().Returns(specRepo); // <-- Inyección configurada
+        _unitOfWorkSubstitute.Repository<Specialty>().Returns(specRepo); 
         _unitOfWorkSubstitute.Repository<Patient>().Returns(patientRepo);
         _unitOfWorkSubstitute.BeginTransactionAsync().Returns(transactionMock);
 
-        // 5. Simulación del fallo estructural al guardar
+        
         _unitOfWorkSubstitute.SaveChangesAsync().ThrowsAsync(new Exception("Fallo simulado"));
 
         var request = new AppointmentModel.Request(doctorId, slotId, new AppointmentModel.PatientDto(12345678), "Motivo de prueba");
@@ -290,7 +290,7 @@ public class AppointmentServiceTests
         // Validar que el bloque "await using" liberó los recursos (Rollback implícito)
         await transactionMock.Received(1).DisposeAsync();
 
-        // Opcional: Confirmar que el método explícito no fue llamado, validando el diseño
+        // Confirmar que el método explícito no fue llamado, validando el diseño
         await transactionMock.DidNotReceive().RollbackAsync();
     }
 }
