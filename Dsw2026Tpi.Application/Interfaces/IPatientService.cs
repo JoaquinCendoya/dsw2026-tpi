@@ -1,12 +1,8 @@
-﻿using Dsw2026Tpi.Domain.Entities;
-using System;
-using System.Collections.Generic;
-using System.Text;
+using Dsw2026Tpi.Application.Models;
 
-namespace Dsw2026Tpi.Application.Interfaces
+namespace Dsw2026Tpi.Application.Interfaces;
+
+public interface IPatientService
 {
-    public interface IPatientService
-    {
-        Task<Patient> GetByUserIdAsync(Guid userId);
-    }
+    Task<PatientModel.Response> GetByUserIdAsync(Guid userId);
 }

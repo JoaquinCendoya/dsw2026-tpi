@@ -6,11 +6,24 @@ namespace Dsw2026Tpi.Application.Mappings;
 
 public static class AvailabilityMappingExtensions
 {
+    private static readonly Dictionary<DayOfWeek, string> DiasEnEspanol = new()
+    {
+        [DayOfWeek.Monday] = "LUNES",
+        [DayOfWeek.Tuesday] = "MARTES",
+        [DayOfWeek.Wednesday] = "MIÉRCOLES",
+        [DayOfWeek.Thursday] = "JUEVES",
+        [DayOfWeek.Friday] = "VIERNES",
+        [DayOfWeek.Saturday] = "SÁBADO",
+        [DayOfWeek.Sunday] = "DOMINGO",
+    };
+
     public static DoctorModel.AvailabilityResponse ToResponse(this AvailabilitySlot entity)
     {
+        var day = $"{DiasEnEspanol[entity.SlotDate.DayOfWeek]} {entity.SlotDate:dd/MM}";
+
         return new DoctorModel.AvailabilityResponse(
             entity.Id,
-            entity.SlotDate.DayOfWeek.ToString(),
+            day,
             entity.StartTime.ToString("HH:mm", CultureInfo.InvariantCulture),
             entity.EndTime.ToString("HH:mm", CultureInfo.InvariantCulture));
     }

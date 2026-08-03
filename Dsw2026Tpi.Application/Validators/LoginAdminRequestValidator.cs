@@ -13,6 +13,6 @@ public class LoginAdminRequestValidator : AbstractValidator<LoginAdminModel.Requ
 
         RuleFor(x => x.Password)
             .NotEmpty().WithMessage("La contraseña es obligatoria.")
-            .MinimumLength(8).WithMessage("La contraseña debe tener al menos 8 caracteres.");
+            .MinimumLength(6).WithMessage("La contraseña debe tener al menos 6 caracteres.");
     }
 }
