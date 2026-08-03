@@ -1,6 +1,7 @@
 ﻿using Dsw2026Tpi.Application.Models;
 using Dsw2026Tpi.Application.Interfaces;
 using Dsw2026Tpi.Application.Services;
+using Dsw2026Tpi.CrossCutting.Exceptions;
 using Dsw2026Tpi.Domain.Entities;
 using Dsw2026Tpi.Domain.Interfaces;
 using Microsoft.Extensions.Logging.Abstractions;
@@ -106,7 +107,7 @@ namespace Dsw2026Tpi.Tests
                 }
             );
 
-            await Assert.ThrowsAsync<ArgumentException>(() =>
+            await Assert.ThrowsAsync<BusinessRuleException>(() =>
                 _service.GenerateMonthlyAvailabilityAsync(request)
             );
         }

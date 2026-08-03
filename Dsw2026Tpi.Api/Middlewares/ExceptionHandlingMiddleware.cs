@@ -10,6 +10,10 @@ public class ExceptionHandlingMiddleware
 {
     private readonly RequestDelegate _next;
     private readonly ILogger<ExceptionHandlingMiddleware> _logger;
+    private static readonly JsonSerializerOptions SerializerOptions = new()
+    {
+        PropertyNamingPolicy = JsonNamingPolicy.CamelCase
+    };
 
     public ExceptionHandlingMiddleware(RequestDelegate next, ILogger<ExceptionHandlingMiddleware> logger)
     {
@@ -57,7 +61,7 @@ public class ExceptionHandlingMiddleware
                 error.ErrorCode, (int)status, context.Request.Path);
         }
 
-        var result = JsonSerializer.Serialize(error);
+        var result = JsonSerializer.Serialize(error, SerializerOptions);
         context.Response.ContentType = "application/json";
         context.Response.StatusCode = (int)status;
         await context.Response.WriteAsync(result);

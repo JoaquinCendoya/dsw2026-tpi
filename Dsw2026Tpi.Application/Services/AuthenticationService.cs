@@ -57,7 +57,7 @@ public class AuthenticationService : IAuthenticationService
 
         return new LoginAdminModel.Response(
             token,
-            role
+            "ADMINISTRADOR"
         );
     }
 
@@ -122,10 +122,9 @@ public class AuthenticationService : IAuthenticationService
 
             _logger.LogInformation("Login de paciente exitoso: {Email}", request.Email);
         }
-        var role = Roles.Patient;
-        var token = _jwtService.GenerateToken(user.UserName!, role);
+        var token = _jwtService.GenerateToken(user.UserName!, Roles.Patient);
 
-        return new LoginPatientModel.Response(token, role);
+        return new LoginPatientModel.Response(token, "PACIENTE");
     }
 
     public async Task<RegisterModel.Response> Register(RegisterModel.Request request)
