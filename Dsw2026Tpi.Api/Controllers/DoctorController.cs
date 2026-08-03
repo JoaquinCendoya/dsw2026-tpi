@@ -40,7 +40,7 @@ public class DoctorController : AppController
     /// <param name="id">Id del médico.</param>
     /// <response code="200">Disponibilidad horaria por día de la semana.</response>
     [HttpGet("{id:guid}/availabilities")]
-    [AllowAnonymous]
+    [Authorize(Policy = Policies.PatientPolicy)]
     [ProducesResponseType(typeof(IEnumerable<DoctorModel.AvailabilityResponse>), StatusCodes.Status200OK)]
     public async Task<IActionResult> GetAvailabilities([FromRoute] Guid id)
     {
