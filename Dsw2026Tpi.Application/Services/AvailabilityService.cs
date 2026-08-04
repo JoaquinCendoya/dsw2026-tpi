@@ -71,7 +71,7 @@ public class AvailabilityService : IAvailabilityService
             if (conflictingRule is not null)
             {
                 throw new BusinessRuleException(
-                    $"El médico ya tiene disponibilidad configurada el día {dayOfWeek} entre {conflictingRule.StartTime.ToString("HH:mm")} y {conflictingRule.EndTime.ToString("HH:mm")}.",
+                    $"El médico ya tiene disponibilidad configurada el día {SpanishDayOfWeek.ToString(dayOfWeek)} entre {conflictingRule.StartTime.ToString("HH:mm")} y {conflictingRule.EndTime.ToString("HH:mm")}.",
                     "AVAILABILITY_OVERLAP");
             }
 
