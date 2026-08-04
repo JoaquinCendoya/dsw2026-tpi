@@ -11,8 +11,6 @@ public static class DependencyInjectionConfigurationExtensions
 {
     public static IServiceCollection AddAppDependencies(this IServiceCollection services)
     {
-        services.AddScoped<IUnitOfWork, UnitOfWork>();
-        services.AddScoped(typeof(IRepository<>), typeof(Repository<>));
         services.AddScoped<IDoctorService, DoctorService>();
         services.AddScoped<ISpecialtyService, SpecialtyService>();
         services.AddScoped<IPatientService, PatientService>();
