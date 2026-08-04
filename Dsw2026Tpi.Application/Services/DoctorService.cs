@@ -1,6 +1,7 @@
-﻿using Dsw2026Tpi.Application.Models;
+﻿using Dsw2026Tpi.Application.Common;
 using Dsw2026Tpi.Application.Interfaces;
 using Dsw2026Tpi.Application.Mappings;
+using Dsw2026Tpi.Application.Models;
 using Dsw2026Tpi.CrossCutting.Exceptions;
 using Dsw2026Tpi.Domain.Entities;
 using Dsw2026Tpi.Domain.Enums;
@@ -73,16 +74,14 @@ public class DoctorService : IDoctorService
         var doctor = await _unitOfWork.Repository<Doctor>().GetByIdAsync(id)
             ?? throw new EntityNotFoundException(nameof(Doctor));
 
-        var today = DateOnly.FromDateTime(DateTime.Today);
+        var rules = await _unitOfWork.Repository<AvailabilityRule>().FindAsync(
+        r => r.DoctorId == id);
 
-        var slots = await _unitOfWork.Repository<AvailabilitySlot>().FindAsync(
-            s => s.AvailabilityRule.DoctorId == id &&
-                 s.SlotDate >= today &&
-                 s.Status == SlotStatus.Available);
-
-        return slots
-            .OrderBy(s => s.SlotDate)
-            .ThenBy(s => s.StartTime)
-            .Select(s => s.ToResponse());
+        return rules.Select(r => new DoctorModel.AvailabilityResponse(
+            r.Id,
+            SpanishDayOfWeek.ToString(r.DayOfWeek),
+            r.StartTime.ToString("HH:mm"),
+            r.EndTime.ToString("HH:mm")
+        ));
     }
 }
