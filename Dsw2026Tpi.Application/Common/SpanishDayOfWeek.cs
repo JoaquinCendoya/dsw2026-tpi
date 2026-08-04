@@ -17,4 +17,10 @@ public static class SpanishDayOfWeek
         Days.TryGetValue(value.ToUpperInvariant(), out dayOfWeek);
 
     public static bool IsValid(string value) => Days.ContainsKey(value.ToUpperInvariant());
+
+    public static string ToString(DayOfWeek day)
+    {
+        var match = Days.FirstOrDefault(x => x.Value == day);
+        return match.Key ?? day.ToString();
+    }
 }
