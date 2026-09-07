@@ -1,0 +1,11 @@
+:root {
+  color-scheme: light;
+  --color-canvas: #f4f7f4;
+  --color-surface: #ffffff;
+  --color-ink: #17231d;
+  --color-muted: #5f6e65;
+  --color-accent: #176b4d;
+  --font-body: Georgia, 'Times New Roman', serif;
+  --space-page: clamp(1.5rem, 5vw, 5rem);
+  --radius-surface: 1.25rem;
+}
