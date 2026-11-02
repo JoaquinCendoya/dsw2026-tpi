@@ -11,6 +11,7 @@ public interface IRepository<T> where T : EntityBase
     Task AddAsync(T entity);
     void Update(T entity);
     void Delete(T entity);
+    Task<int> CountAsync(Expression<Func<T, bool>> predicate, CancellationToken cancellationToken = default);
 
     // Nueva firma obligatoria para reemplazar IPersistence
     Task<Pagination<T>> PaginateAsync<TKey>(
