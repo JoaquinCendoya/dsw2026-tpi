@@ -1,3 +1,6 @@
+using Dsw2026Tpi.Domain.Entities;
+using Dsw2026Tpi.Domain.Enums;
+
 namespace Dsw2026Tpi.Application.Models;
 
 public record AppointmentModel
@@ -10,7 +13,7 @@ public record AppointmentModel
 
     public record DailyRequest(DateOnly Date, int PageSize, int PageIndex, bool Descending = false);
 
-    public record SearchRequest(int PageSize, int PageIndex, Guid? SpecialtyId, Guid? DoctorId, long? Dni, DateOnly? Date, bool Descending = false);
+    public record SearchRequest(int PageSize, int PageIndex, Guid? SpecialtyId, Guid? DoctorId, long? Dni, DateOnly? Date, DateOnly? StartDate, DateOnly? EndDate, AppointmentStatus? Status, bool Descending = false);
 
     public record SearchResponse(
         Guid AppointmentsId,

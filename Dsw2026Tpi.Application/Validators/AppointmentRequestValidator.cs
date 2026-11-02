@@ -21,8 +21,8 @@ public class AppointmentRequestValidator : AbstractValidator<AppointmentModel.Re
             .NotEmpty().WithMessage("Debe indicar un horario disponible.");
 
         RuleFor(x => x.Patient.Dni)
-            .Must(dni => dni.ToString().Length is >= 7 and <= 10)
-            .WithMessage("El DNI debe tener entre 7 y 10 dígitos.");
+            .Must(dni => dni.ToString().Length is 7 or 8 or 9)
+            .WithMessage("El DNI debe tener 7, 8 o 9 dígitos.");
 
         RuleFor(x => x.Reason)
             .NotEmpty().WithMessage("El motivo es obligatorio.")

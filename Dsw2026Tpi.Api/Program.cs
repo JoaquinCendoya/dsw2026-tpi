@@ -1,10 +1,13 @@
 using Dsw2026Tpi.Api.Configurations;
 using Dsw2026Tpi.Api.Filters;
 using Dsw2026Tpi.Api.Middlewares;
+using Dsw2026Tpi.Data;
+using Dsw2026Tpi.Data.Identity;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc.Authorization;
+using Microsoft.EntityFrameworkCore;
 using Serilog;
 
 
@@ -47,6 +50,15 @@ public class Program
             builder.Services.AddAppRateLimiter(builder.Configuration);
 
             var app = builder.Build();
+
+            using (var scope = app.Services.CreateScope())
+            {
+                var database = scope.ServiceProvider.GetRequiredService<Dsw2026TpiDbContext>();
+                await database.Database.MigrateAsync();
+
+                var authenticationDatabase = scope.ServiceProvider.GetRequiredService<AuthenticationDbContext>();
+                await authenticationDatabase.Database.MigrateAsync();
+            }
 
             app.UseSerilogRequestLogging();
 

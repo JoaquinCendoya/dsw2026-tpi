@@ -29,6 +29,11 @@ public static class PersistenceConfigurationExtensions
             {
                 c.Seedwork<IdentityRole>(Path.Combine("Sources", "roles.json"));
             });
+            options.UseAsyncSeeding((c, t, cancellationToken) =>
+            {
+                c.Seedwork<IdentityRole>(Path.Combine("Sources", "roles.json"));
+                return Task.CompletedTask;
+            });
         });
         // Registro de los patrones de arquitectura base
         services.AddScoped<IUnitOfWork, UnitOfWork>();

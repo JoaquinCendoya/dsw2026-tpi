@@ -19,13 +19,28 @@ public static class AppointmentMappingExtensions
         var doctor = entity.AvailabilitySlot.AvailabilityRule.Doctor;
         var patient = entity.Patient;
 
+        // Validación y parseo seguro del DNI del paciente (asegurando que cumpla con el formato numérico requerido)
+        long dniValue = 0;
+        if (!string.IsNullOrEmpty(patient.Dni) && long.TryParse(patient.Dni, out var parsedDni))
+        {
+            dniValue = parsedDni;
+        }
+
         return new AppointmentModel.SearchResponse(
             entity.Id,
-            StatusLiterals[entity.Status],
-            new AppointmentModel.PatientSummary(long.Parse(patient.Dni), patient.FullName),
+            entity.Status.ToString(), // O el literal de estado correspondiente
+            new AppointmentModel.PatientSummary(
+                dniValue,
+                !string.IsNullOrWhiteSpace(patient.FullName) ? patient.FullName : "Sin nombre"
+            ),
             new AppointmentModel.DoctorSummary(
                 doctor.Id,
                 doctor.Name,
-                new AppointmentModel.SpecialtySummary(doctor.Specialty!.Id, doctor.Specialty.Name)));
+                new AppointmentModel.SpecialtySummary(
+                    doctor.Specialty!.Id,
+                    doctor.Specialty.Name
+                )
+            )
+        );
     }
 }

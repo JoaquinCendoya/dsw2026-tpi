@@ -63,7 +63,7 @@ namespace Dsw2026Tpi.Tests
             var result = await _controller.CancelAsync(id);
 
             // Assert
-            await _serviceMock.Received(1).CancelAsync(id);
+            await _serviceMock.Received(1).CancelAsync(id,42797948L);
             result.Should().BeOfType<OkObjectResult>();
         }
 
@@ -72,29 +72,38 @@ namespace Dsw2026Tpi.Tests
         {
             // Arrange
             long dni = 30123456;
-            var expected = new List<AppointmentModel.SearchResponse>
-        {
-            new(
-                AppointmentsId: Guid.NewGuid(),
-                AppointmentsStatus: "Confirmado",
-                Patient: new AppointmentModel.PatientSummary(Dni: dni, FullName: "Ana Gómez"),
-                Doctor: new AppointmentModel.DoctorSummary(
-                    DoctorId: Guid.NewGuid(),
-                    Name: "Dra. Ana Gómez",
-                    Specialty: new AppointmentModel.SpecialtySummary(Guid.NewGuid(), "Pediatría")
+            var list = new List<AppointmentModel.SearchResponse>
+            {
+                new(
+                    AppointmentsId: Guid.NewGuid(),
+                    AppointmentsStatus: "Confirmado",
+                    Patient: new AppointmentModel.PatientSummary(Dni: dni, FullName: "Ana Gómez"),
+                    Doctor: new AppointmentModel.DoctorSummary(
+                        DoctorId: Guid.NewGuid(),
+                        Name: "Dra. Ana Gómez",
+                        Specialty: new AppointmentModel.SpecialtySummary(Guid.NewGuid(), "Pediatría")
+                    )
                 )
-            )
-        };
+            };
+
+            // Instancia usando el constructor con los parámetros que requiere tu clase Pagination:
+            // (PageNumber, PageSize, TotalCount, Items) -> Verifica el orden exacto en tu definición de Pagination
+            var expectedPagination = new Pagination<AppointmentModel.SearchResponse>(
+                1,
+                10,
+                list.Count,
+                list
+            );
 
             _serviceMock.GetByPatientDniAsync(Arg.Is<AppointmentModel.PatientDto>(p => p!.Dni == dni))
-                .Returns(expected);
+                .Returns(Task.FromResult(expectedPagination));
 
             // Act
-            var result = await _controller.GetByPatientAsync(dni);
+            var result = await _controller.GetByPatientAsync(Convert.ToInt16(dni));
 
             // Assert
             var ok = result.Should().BeOfType<OkObjectResult>().Subject;
-            ok.Value.Should().BeEquivalentTo(expected);
+            ok.Value.Should().BeEquivalentTo(expectedPagination);
         }
 
         [Fact]
@@ -139,13 +148,17 @@ namespace Dsw2026Tpi.Tests
             var date = new DateOnly(2026, 8, 10);
             int pageSize = 10, pageIndex = 1;
 
+            // Envía los 10 parámetros requeridos por el constructor del record
             var request = new AppointmentModel.SearchRequest(
                 PageSize: pageSize,
                 PageIndex: pageIndex,
                 SpecialtyId: specialtyId,
                 DoctorId: doctorId,
                 Dni: dni,
-                Date: date
+                Date: date,
+                StartDate: null,
+                EndDate: null,
+                Status: null
             );
 
             // Act
@@ -162,13 +175,18 @@ namespace Dsw2026Tpi.Tests
         {
             // Arrange
             long? dni = null;
+
+            // Pasa los 10 parámetros requeridos por el constructor del record en orden
             var request = new AppointmentModel.SearchRequest(
                 PageSize: 10,
                 PageIndex: 1,
                 SpecialtyId: null,
                 DoctorId: null,
                 Dni: dni,
-                Date: null
+                Date: null,
+                StartDate: null,
+                EndDate: null,
+                Status: null
             );
 
             // Act
