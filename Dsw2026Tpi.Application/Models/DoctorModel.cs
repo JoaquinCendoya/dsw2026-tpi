@@ -8,6 +8,8 @@ public record DoctorModel
 
     public record SpecialtyDto(Guid? Id, string? Name);
 
+    public record OptionResponse(Guid Id, string Name);
+
     // Requerido para listar los horarios generados
     public record AvailabilityResponse(Guid Id, string Day, string StartTime, string EndTime);
 

@@ -32,6 +32,17 @@ public class DoctorService : IDoctorService
 
         return doctors.Map(d => d.ToResponse());
     }
+
+    public async Task<IEnumerable<DoctorModel.OptionResponse>> GetOptions(Guid specialtyId)
+    {
+        var doctors = await _unitOfWork.Repository<Doctor>().FindAsync(
+            doctor => doctor.SpecialtyId == specialtyId);
+
+        return doctors
+            .OrderBy(doctor => doctor.Name)
+            .Select(doctor => new DoctorModel.OptionResponse(doctor.Id, doctor.Name));
+    }
+
     public async Task<DoctorModel.Response> Create(DoctorModel.Request request)
     {
         var specialty = await _unitOfWork.Repository<Specialty>().GetByIdAsync(request.SpecialtyId)

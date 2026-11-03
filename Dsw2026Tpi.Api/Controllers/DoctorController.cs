@@ -39,6 +39,24 @@ public class DoctorController : AppController
     }
 
     /// <summary>
+    /// Obtiene las opciones de médicos de una especialidad para selectores de pacientes.
+    /// </summary>
+    /// <param name="specialtyId">Id de la especialidad elegida.</param>
+    /// <response code="200">Opciones de médicos ordenadas por nombre.</response>
+    /// <response code="400">El identificador de especialidad no tiene formato GUID.</response>
+    /// <response code="401">No se proporcionó un token válido.</response>
+    [HttpGet("/api/specialties/{specialtyId}/doctors/options")]
+    [Authorize]
+    [ProducesResponseType(typeof(IEnumerable<DoctorModel.OptionResponse>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status401Unauthorized)]
+    public async Task<IActionResult> GetOptions([FromRoute] Guid specialtyId)
+    {
+        var result = await _service.GetOptions(specialtyId);
+        return Ok(result);
+    }
+
+    /// <summary>
     /// Obtiene la disponibilidad horaria mensual de un médico.
     /// </summary>
     /// <param name="id">Id del médico.</param>

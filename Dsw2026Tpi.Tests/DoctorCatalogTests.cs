@@ -84,15 +84,41 @@ public class DoctorCatalogTests
     }
 
     [Fact]
+    public async Task GetOptions_DevuelveIdYNombreOrdenadosSoloParaLaEspecialidad()
+    {
+        await using var context = CreateContext();
+        var unitOfWork = new UnitOfWork(context);
+        var cardiology = new Specialty("Cardiología", "Corazón");
+        var pediatrics = new Specialty("Pediatría", "Infancias");
+        await unitOfWork.Repository<Specialty>().AddAsync(cardiology);
+        await unitOfWork.Repository<Specialty>().AddAsync(pediatrics);
+        var doctorZoe = new Doctor("Dra. Zoe", "MAT-1", cardiology);
+        var doctorAna = new Doctor("Dra. Ana", "MAT-2", cardiology);
+        await unitOfWork.Repository<Doctor>().AddAsync(doctorZoe);
+        await unitOfWork.Repository<Doctor>().AddAsync(doctorAna);
+        await unitOfWork.Repository<Doctor>().AddAsync(new Doctor("Dr. Bruno", "MAT-3", pediatrics));
+        await unitOfWork.SaveChangesAsync();
+        var service = new DoctorService(unitOfWork);
+
+        var result = (await service.GetOptions(cardiology.Id)).ToList();
+
+        result.Should().HaveCount(2);
+        result[0].Should().Be(new DoctorModel.OptionResponse(doctorAna.Id, "Dra. Ana"));
+        result[1].Should().Be(new DoctorModel.OptionResponse(doctorZoe.Id, "Dra. Zoe"));
+    }
+
+    [Fact]
     public void CatalogReadsRequireAuthenticationAndWritesRequireAdministratorRole()
     {
         var doctorRead = typeof(DoctorController).GetMethod(nameof(DoctorController.GetAll))!;
         var specialtyRead = typeof(SpecialtyController).GetMethod(nameof(SpecialtyController.GetAll))!;
+        var doctorOptionsRead = typeof(DoctorController).GetMethod(nameof(DoctorController.GetOptions))!;
         var doctorCreate = typeof(DoctorController).GetMethod(nameof(DoctorController.Create))!;
         var specialtyCreate = typeof(SpecialtyController).GetMethod(nameof(SpecialtyController.Create))!;
 
         doctorRead.GetCustomAttribute<AuthorizeAttribute>()!.Policy.Should().BeNull();
         specialtyRead.GetCustomAttribute<AuthorizeAttribute>()!.Policy.Should().BeNull();
+        doctorOptionsRead.GetCustomAttribute<AuthorizeAttribute>()!.Policy.Should().BeNull();
         doctorCreate.GetCustomAttribute<AuthorizeAttribute>()!.Policy.Should().Be(Policies.AdminPolicy);
         specialtyCreate.GetCustomAttribute<AuthorizeAttribute>()!.Policy.Should().Be(Policies.AdminPolicy);
     }
