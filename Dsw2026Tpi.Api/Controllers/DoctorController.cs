@@ -45,7 +45,7 @@ public class DoctorController : AppController
     /// <response code="200">Opciones de médicos ordenadas por nombre.</response>
     /// <response code="400">El identificador de especialidad no tiene formato GUID.</response>
     /// <response code="401">No se proporcionó un token válido.</response>
-    [HttpGet("/api/specialties/{specialtyId}/doctors/options")]
+    [HttpGet("by-specialty/{specialtyId}/options")]
     [Authorize]
     [ProducesResponseType(typeof(IEnumerable<DoctorModel.OptionResponse>), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status400BadRequest)]
