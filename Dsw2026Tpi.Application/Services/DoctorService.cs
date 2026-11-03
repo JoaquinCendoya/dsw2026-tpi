@@ -23,7 +23,8 @@ public class DoctorService : IDoctorService
         var doctors = await _unitOfWork.Repository<Doctor>().PaginateAsync(
             request.PageSize,
             request.PageIndex,
-            d => string.IsNullOrWhiteSpace(request.Name) || d.Name.Contains(request.Name),
+            d => (string.IsNullOrWhiteSpace(request.Name) || d.Name.Contains(request.Name))
+                && (!request.SpecialtyId.HasValue || d.SpecialtyId == request.SpecialtyId.Value),
             d => d.Name,
             request.Descending,
             nameof(Doctor.Specialty)

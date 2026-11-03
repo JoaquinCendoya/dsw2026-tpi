@@ -23,11 +23,15 @@ public class DoctorController : AppController
     /// <summary>
     /// Obtiene un listado paginado de médicos activos.
     /// </summary>
-    /// <param name="request">Parámetros de búsqueda, paginación y orden (nombre asc/desc).</param>
+    /// <param name="request">Parámetros de búsqueda, especialidad, paginación y orden (nombre asc/desc).</param>
     /// <response code="200">Listado paginado de médicos.</response>
+    /// <response code="400">El identificador de especialidad no tiene formato GUID.</response>
+    /// <response code="401">No se proporcionó un token válido.</response>
     [HttpGet]
-    [Authorize(Policy = Policies.AdminPolicy)]
+    [Authorize]
     [ProducesResponseType(StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status401Unauthorized)]
     public async Task<IActionResult> GetAll([FromQuery] DoctorModel.SearchRequest request)
     {
         var result = await _service.GetAll(request);
@@ -42,6 +46,8 @@ public class DoctorController : AppController
     [HttpGet("{id:guid}/availabilities")]
     [Authorize(Policy = Policies.PatientPolicy)]
     [ProducesResponseType(typeof(IEnumerable<DoctorModel.AvailabilityResponse>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status403Forbidden)]
     public async Task<IActionResult> GetAvailabilities([FromRoute] Guid id)
     {
         var result = await _service.GetAvailabilities(id);
@@ -59,6 +65,8 @@ public class DoctorController : AppController
     [Authorize(Policy = Policies.AdminPolicy)]
     [ProducesResponseType(typeof(DoctorModel.Response), StatusCodes.Status201Created)]
     [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status403Forbidden)]
     public async Task<IActionResult> Create([FromBody] DoctorModel.Request request)
     {
         var result = await _service.Create(request);
@@ -78,6 +86,8 @@ public class DoctorController : AppController
     [ProducesResponseType(typeof(DoctorModel.Response), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status400BadRequest)]
     [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status404NotFound)]
+    [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status403Forbidden)]
     public async Task<IActionResult> Update([FromRoute] Guid id, [FromBody] DoctorModel.Request request)
     {
         var result = await _service.Update(id, request);
@@ -94,6 +104,8 @@ public class DoctorController : AppController
     [Authorize(Policy = Policies.AdminPolicy)]
     [ProducesResponseType(typeof(string), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status404NotFound)]
+    [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status403Forbidden)]
     public async Task<IActionResult> Delete([FromRoute] Guid id)
     {
         await _service.Delete(id);
