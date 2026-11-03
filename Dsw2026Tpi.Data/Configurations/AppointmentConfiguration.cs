@@ -1,4 +1,5 @@
 ﻿using Dsw2026Tpi.Domain.Entities;
+using Dsw2026Tpi.Domain.Enums;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 
@@ -11,8 +12,14 @@ namespace Dsw2026Tpi.Data.Configurations
             base.Configure(builder);
             builder.ToTable("Appointments");
 
-            builder.Property(a => a.Reason).IsRequired().HasMaxLength(200);
-            builder.Property(a => a.Status).IsRequired().HasConversion<string>().HasMaxLength(20);
+            builder.Property(a => a.Reason).IsRequired().HasMaxLength(300);
+            builder.Property(a => a.Status)
+                .IsRequired()
+                .HasConversion(
+                   v => v == AppointmentStatus.NoShow ? "NO_SHOW" : v.ToString().ToUpper(),
+                   v => v == "NO_SHOW" ? AppointmentStatus.NoShow : Enum.Parse<AppointmentStatus>(v, true)
+               )
+                .HasMaxLength(20);
             builder.Property(a => a.CancelledAt).IsRequired(false);
             builder.Property(a => a.AttendedAt).IsRequired(false);
 
@@ -25,7 +32,7 @@ namespace Dsw2026Tpi.Data.Configurations
             // Control de concurrencia nativo (RN03): Un slot solo puede tener una cita ACTIVA asociada
             builder.HasIndex(a => a.AvailabilitySlotId)
                    .IsUnique()
-                   .HasFilter("[Status] = 'Booked' AND [Deleted] = 0");
+                   .HasFilter("[Status] = 'BOOKED' AND [Deleted] = 0");
 
             // Relacion con Paciente
             builder.HasOne(a => a.Patient)
