@@ -38,6 +38,7 @@ namespace Dsw2026Tpi.Domain.Entities
 
             Reason = reason;
             Status = AppointmentStatus.Booked;
+            slot.Book();
         }
 
         public void Cancel() => TransitionFromBooked(AppointmentStatus.Cancelled, () => CancelledAt = DateTime.UtcNow);
@@ -56,6 +57,11 @@ namespace Dsw2026Tpi.Domain.Entities
 
             Status = newStatus;
             onTransition();
+
+            if (newStatus == AppointmentStatus.Cancelled && AvailabilitySlot != null)
+            {
+                AvailabilitySlot.Release();
+            }
         }
     }
 }
