@@ -202,7 +202,7 @@ public class AppointmentServiceTests
         _unitOfWorkSubstitute.Repository<Appointment>().Returns(appointmentRepo);
         _unitOfWorkSubstitute.Repository<AvailabilitySlot>().Returns(slotRepo);
 
-        await _sut.CancelAsync(appointmentId);
+        await _sut.CancelAsync(appointmentId, Convert.ToInt64(patient.Dni));
 
         slotRepo.Received(1).Update(Arg.Is<AvailabilitySlot>(s => s!.Status == SlotStatus.Available));
         appointmentRepo.Received(1).Update(Arg.Is<Appointment>(a => a!.Status == AppointmentStatus.Cancelled));
@@ -235,7 +235,7 @@ public class AppointmentServiceTests
         _unitOfWorkSubstitute.Repository<Appointment>().Returns(appointmentRepo);
         _unitOfWorkSubstitute.Repository<AvailabilitySlot>().Returns(slotRepo);
 
-        var exception = await Assert.ThrowsAsync<BusinessRuleException>(() => _sut.CancelAsync(appointmentId));
+        var exception = await Assert.ThrowsAsync<BusinessRuleException>(() => _sut.CancelAsync(appointmentId, Convert.ToInt64(patient.Dni)));
         exception.Error.ErrorCode.Should().Be("INVALID_APPOINTMENT_STATUS");
     }
 

@@ -63,6 +63,9 @@ public class AuthenticationService : IAuthenticationService
 
     public async Task<LoginPatientModel.Response> LoginPatient(LoginPatientModel.Request request)
     {
+        if (!request.Email.IsEmailValid()) throw new AuthenticationException();
+        if (!request.Dni.IsDniValid()) throw new AuthenticationException();
+
         var user = await _userManager.FindByEmailAsync(request.Email);
 
         if (user == null)
