@@ -129,4 +129,22 @@ public class DoctorController : AppController
         await _service.Delete(id);
         return Ok("ok");
     }
+
+    /// <summary>
+    /// Consulta los turnos libres de un médico para un rango de fechas.
+    /// </summary>
+    [HttpGet("{id:guid}/available-slots")]
+    [Authorize(Policy = Policies.PatientPolicy)]
+    [ProducesResponseType(typeof(IEnumerable<DoctorModel.AvailableSlotResponse>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status403Forbidden)]
+    public async Task<IActionResult> GetAvailableSlots(
+        [FromRoute] Guid id,
+        [FromQuery] DateTime startDate,
+        [FromQuery] DateTime endDate)
+    {
+        var result = await _service.GetAvailableSlotsAsync(id, startDate, endDate);
+        return Ok(result);
+    }
 }

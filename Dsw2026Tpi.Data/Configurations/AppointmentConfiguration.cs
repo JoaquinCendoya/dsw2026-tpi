@@ -32,7 +32,7 @@ namespace Dsw2026Tpi.Data.Configurations
             // Control de concurrencia nativo (RN03): Un slot solo puede tener una cita ACTIVA asociada
             builder.HasIndex(a => a.AvailabilitySlotId)
                    .IsUnique()
-                   .HasFilter("[Status] = 'BOOKED' AND [Deleted] = 0");
+                   .HasFilter("[Status] = 'BOOKED' ");
 
             // Relacion con Paciente
             builder.HasOne(a => a.Patient)
@@ -40,7 +40,7 @@ namespace Dsw2026Tpi.Data.Configurations
                    .HasForeignKey(a => a.PatientId)
                    .OnDelete(DeleteBehavior.Restrict);
 
-            builder.Property(a => a.Deleted).HasDefaultValue(false);
+            builder.Ignore(a => a.Deleted);
         }
     }
 }

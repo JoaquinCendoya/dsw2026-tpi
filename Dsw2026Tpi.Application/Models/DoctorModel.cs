@@ -20,4 +20,10 @@ public record DoctorModel
         bool Descending = false,
         Guid? SpecialtyId = null);
 
+    public record AvailableSlotResponse(
+        Guid AvailabilitySlotId,
+        DateTime Date,
+        TimeSpan StartTime,
+        TimeSpan EndTime
+    );
 }
