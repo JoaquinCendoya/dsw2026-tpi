@@ -125,7 +125,7 @@ public class AuthenticationService : IAuthenticationService
 
             _logger.LogInformation("Login de paciente exitoso: {Email}", request.Email);
         }
-        var token = _jwtService.GenerateToken(user.UserName!, Roles.Patient);
+        var token = _jwtService.GenerateToken(user.UserName!, Roles.Patient, request.Dni.ToString());
 
         return new LoginPatientModel.Response(token, "PACIENTE");
     }

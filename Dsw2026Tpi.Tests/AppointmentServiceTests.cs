@@ -188,19 +188,21 @@ public class AppointmentServiceTests
 
         var rule = new AvailabilityRule(doctor, DateTime.UtcNow.Month, DateTime.UtcNow.Year, DayOfWeek.Monday, new TimeOnly(8, 0), new TimeOnly(18, 0), Guid.NewGuid());
         var slot = new AvailabilitySlot(rule, DateOnly.FromDateTime(DateTime.UtcNow.AddDays(1)), new TimeOnly(10, 0), new TimeOnly(11, 0), slotId);
-        slot.Book();
 
         var patient = new Patient(Guid.NewGuid(), "12345678", "Juan Perez", "555-1234", Guid.NewGuid());
         var appointment = new Appointment(slot, patient, "Motivo de consulta", appointmentId);
 
         var appointmentRepo = Substitute.For<IRepository<Appointment>>();
         var slotRepo = Substitute.For<IRepository<AvailabilitySlot>>();
+        var patientRepo = Substitute.For<IRepository<Patient>>();
 
         appointmentRepo.GetByIdAsync(appointmentId).Returns(appointment);
         slotRepo.GetByIdAsync(slotId).Returns(slot);
+        patientRepo.GetByIdAsync(patient.Id).Returns(patient);
 
         _unitOfWorkSubstitute.Repository<Appointment>().Returns(appointmentRepo);
         _unitOfWorkSubstitute.Repository<AvailabilitySlot>().Returns(slotRepo);
+        _unitOfWorkSubstitute.Repository<Patient>().Returns(patientRepo);
 
         await _sut.CancelAsync(appointmentId, Convert.ToInt64(patient.Dni));
 
@@ -228,12 +230,15 @@ public class AppointmentServiceTests
 
         var appointmentRepo = Substitute.For<IRepository<Appointment>>();
         var slotRepo = Substitute.For<IRepository<AvailabilitySlot>>();
+        var patientRepo = Substitute.For<IRepository<Patient>>();
 
         appointmentRepo.GetByIdAsync(appointmentId).Returns(appointment);
         slotRepo.GetByIdAsync(appointment.AvailabilitySlotId).Returns(slot);
+        patientRepo.GetByIdAsync(patient.Id).Returns(patient);
 
         _unitOfWorkSubstitute.Repository<Appointment>().Returns(appointmentRepo);
         _unitOfWorkSubstitute.Repository<AvailabilitySlot>().Returns(slotRepo);
+        _unitOfWorkSubstitute.Repository<Patient>().Returns(patientRepo);
 
         var exception = await Assert.ThrowsAsync<BusinessRuleException>(() => _sut.CancelAsync(appointmentId, Convert.ToInt64(patient.Dni)));
         exception.Error.ErrorCode.Should().Be("INVALID_APPOINTMENT_STATUS");

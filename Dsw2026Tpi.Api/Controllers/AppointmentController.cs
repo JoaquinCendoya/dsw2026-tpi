@@ -5,7 +5,6 @@ using Dsw2026Tpi.CrossCutting.Models;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.RateLimiting;
-using System.Security.Claims; // Requerido para extraer los Claims del JWT
 
 namespace Dsw2026Tpi.Api.Controllers;
 
@@ -33,6 +32,16 @@ public class AppointmentController : ControllerBase
     [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status409Conflict)]
     public async Task<IActionResult> BookAsync([FromBody] AppointmentModel.Request request)
     {
+        if (!TryGetAuthenticatedPatientDni(out var tokenDni))
+        {
+            return ForbiddenPatientIdentity("No se pudo resolver la identidad del paciente a través del token provisto.");
+        }
+
+        if (request.Patient?.Dni != tokenDni)
+        {
+            return ForbiddenPatientIdentity("El DNI enviado no coincide con el paciente autenticado.");
+        }
+
         var response = await _service.BookAsync(request);
         return StatusCode(StatusCodes.Status201Created, response);
     }
@@ -49,14 +58,9 @@ public class AppointmentController : ControllerBase
     public async Task<IActionResult> GetByPatientAsync([FromQuery] int pageSize = 10, [FromQuery] int pageIndex = 1)
     {
         // VALIDACIÓN DE PACIENTE: Extraer el DNI desde el Claim del token JWT para evitar suplantación de identidad (IDOR)
-        var dniClaim = User.FindFirst(ClaimTypes.NameIdentifier)?.Value ?? User.FindFirst("dni")?.Value;
-
-        if (string.IsNullOrEmpty(dniClaim) || !long.TryParse(dniClaim, out long tokenDni))
+        if (!TryGetAuthenticatedPatientDni(out var tokenDni))
         {
-            return StatusCode(StatusCodes.Status403Forbidden,
-                new ErrorResponse(
-                    "FORBIDDEN_IDENTITY",
-                    "No se pudo resolver la identidad del paciente a través del token provisto."));
+            return ForbiddenPatientIdentity("No se pudo resolver la identidad del paciente a través del token provisto.");
         }
 
         // Se envía a la capa de aplicación el DNI extraído del token de forma segura al igual que los datos de paginado
@@ -76,12 +80,9 @@ public class AppointmentController : ControllerBase
     public async Task<IActionResult> CancelAsync([FromRoute] Guid id)
     {
         // VALIDACIÓN DE PACIENTE: Extraer el DNI desde el Claim del token JWT
-        var dniClaim = User.FindFirst(ClaimTypes.NameIdentifier)?.Value ?? User.FindFirst("dni")?.Value;
-
-        if (string.IsNullOrEmpty(dniClaim) || !long.TryParse(dniClaim, out long tokenDni))
+        if (!TryGetAuthenticatedPatientDni(out var tokenDni))
         {
-            return StatusCode(StatusCodes.Status403Forbidden,
-                new ErrorResponse("FORBIDDEN_IDENTITY", "Token inválido."));
+            return ForbiddenPatientIdentity("No se pudo resolver la identidad del paciente a través del token provisto.");
         }
 
         // Se delega al servicio el ID del turno y el DNI seguro para constatar que le pertenece previo a la cancelación
@@ -124,5 +125,18 @@ public class AppointmentController : ControllerBase
 
         var response = await _service.SearchAsync(request);
         return Ok(response);
+    }
+
+    private bool TryGetAuthenticatedPatientDni(out long patientDni)
+    {
+        var dniClaim = User.FindFirst(IdentityClaims.PatientDni)?.Value;
+        return long.TryParse(dniClaim, out patientDni) && patientDni > 0;
+    }
+
+    private ObjectResult ForbiddenPatientIdentity(string message)
+    {
+        return StatusCode(
+            StatusCodes.Status403Forbidden,
+            new ErrorResponse("FORBIDDEN_IDENTITY", message));
     }
 }

@@ -1,11 +1,13 @@
 ﻿using Dsw2026Tpi.Api.Controllers;
 using Dsw2026Tpi.Application.Interfaces;
 using Dsw2026Tpi.Application.Models;
+using Dsw2026Tpi.CrossCutting.Identity;
 using Dsw2026Tpi.Domain.Entities;
 using FluentAssertions;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using NSubstitute;
+using System.Security.Claims;
 
 namespace Dsw2026Tpi.Tests
 {
@@ -30,6 +32,9 @@ namespace Dsw2026Tpi.Tests
                 Patient: new AppointmentModel.PatientDto(Dni: 30123456),
                 Reason: "Control anual"
             );
+            SetPatientIdentity(
+                new Claim(ClaimTypes.NameIdentifier, "paciente@example.com"),
+                new Claim(IdentityClaims.PatientDni, "30123456"));
 
             var expectedResponse = new AppointmentModel.SearchResponse(
                 AppointmentsId: Guid.NewGuid(),
@@ -54,17 +59,55 @@ namespace Dsw2026Tpi.Tests
         }
 
         [Fact]
+        public async Task BookAsync_RetornaForbidden_CuandoElDniNoCoincideConElToken()
+        {
+            // Arrange
+            var request = new AppointmentModel.Request(
+                DoctorId: Guid.NewGuid(),
+                AvailabilitySlotId: Guid.NewGuid(),
+                Patient: new AppointmentModel.PatientDto(Dni: 30123456),
+                Reason: "Control anual"
+            );
+            SetPatientDni(30123457);
+
+            // Act
+            var result = await _controller.BookAsync(request);
+
+            // Assert
+            result.Should().BeOfType<ObjectResult>()
+                .Which.StatusCode.Should().Be(StatusCodes.Status403Forbidden);
+            await _serviceMock.DidNotReceive().BookAsync(Arg.Any<AppointmentModel.Request>());
+        }
+
+        [Fact]
         public async Task CancelAsync_LlamaAlServiceConIdCorrecto()
         {
             // Arrange
             var id = Guid.NewGuid();
+            const long dni = 42797948;
+            SetPatientDni(dni);
 
             // Act
             var result = await _controller.CancelAsync(id);
 
             // Assert
-            await _serviceMock.Received(1).CancelAsync(id,42797948L);
+            await _serviceMock.Received(1).CancelAsync(id, dni);
             result.Should().BeOfType<OkObjectResult>();
+        }
+
+        [Fact]
+        public async Task CancelAsync_RetornaForbidden_CuandoElTokenNoTieneClaimDni()
+        {
+            // Arrange
+            SetPatientIdentity(new Claim(ClaimTypes.NameIdentifier, "paciente@example.com"));
+
+            // Act
+            var result = await _controller.CancelAsync(Guid.NewGuid());
+
+            // Assert
+            result.Should().BeOfType<ObjectResult>()
+                .Which.StatusCode.Should().Be(StatusCodes.Status403Forbidden);
+            await _serviceMock.DidNotReceive().CancelAsync(Arg.Any<Guid>(), Arg.Any<long>());
         }
 
         [Fact]
@@ -72,6 +115,7 @@ namespace Dsw2026Tpi.Tests
         {
             // Arrange
             long dni = 30123456;
+            SetPatientDni(dni);
             var list = new List<AppointmentModel.SearchResponse>
             {
                 new(
@@ -99,11 +143,27 @@ namespace Dsw2026Tpi.Tests
                 .Returns(Task.FromResult(expectedPagination));
 
             // Act
-            var result = await _controller.GetByPatientAsync(Convert.ToInt16(dni));
+            var result = await _controller.GetByPatientAsync();
 
             // Assert
             var ok = result.Should().BeOfType<OkObjectResult>().Subject;
             ok.Value.Should().BeEquivalentTo(expectedPagination);
+        }
+
+        [Fact]
+        public async Task GetByPatientAsync_RetornaForbidden_CuandoElTokenNoTieneClaimDni()
+        {
+            // Arrange
+            SetPatientIdentity(new Claim(ClaimTypes.NameIdentifier, "paciente@example.com"));
+
+            // Act
+            var result = await _controller.GetByPatientAsync();
+
+            // Assert
+            result.Should().BeOfType<ObjectResult>()
+                .Which.StatusCode.Should().Be(StatusCodes.Status403Forbidden);
+            await _serviceMock.DidNotReceive()
+                .GetByPatientDniAsync(Arg.Any<AppointmentModel.PatientDto>(), Arg.Any<int>(), Arg.Any<int>());
         }
 
         [Fact]
@@ -196,6 +256,24 @@ namespace Dsw2026Tpi.Tests
             await _serviceMock.Received(1).SearchAsync(
                 Arg.Is<AppointmentModel.SearchRequest>(r => r == request)
             );
+        }
+
+        private void SetPatientDni(long dni)
+        {
+            SetPatientIdentity(
+                new Claim(ClaimTypes.NameIdentifier, "paciente@example.com"),
+                new Claim(IdentityClaims.PatientDni, dni.ToString()));
+        }
+
+        private void SetPatientIdentity(params Claim[] claims)
+        {
+            _controller.ControllerContext = new ControllerContext
+            {
+                HttpContext = new DefaultHttpContext
+                {
+                    User = new ClaimsPrincipal(new ClaimsIdentity(claims, "Bearer"))
+                }
+            };
         }
     }
 }
