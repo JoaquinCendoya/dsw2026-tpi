@@ -49,5 +49,24 @@ namespace Dsw2026Tpi.Domain.Entities
                 throw new BusinessRuleException(ErrorCodes.INVALID_TIME_RANGE, nameof(ErrorCodes.INVALID_TIME_RANGE))
                     .WithDetail("startTime", "must_be_before_endTime");
         }
+        public IEnumerable<AvailabilitySlot> GenerateSlotsForDate(DateOnly targetDate)
+        {
+            var slots = new List<AvailabilitySlot>();
+            var currentStartTime = StartTime;
+            var slotDuration = TimeSpan.FromMinutes(30);
+
+            while (currentStartTime < EndTime)
+            {
+                var currentEndTime = currentStartTime.Add(slotDuration);
+
+                // Verifica que el turno de 30 min no exceda la hora de finalización de la regla
+                if (currentEndTime > EndTime) break;
+
+                slots.Add(new AvailabilitySlot(this, targetDate, currentStartTime, currentEndTime));
+                currentStartTime = currentEndTime;
+            }
+
+            return slots;
+        }
     }
 }

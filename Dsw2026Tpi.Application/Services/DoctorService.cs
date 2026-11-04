@@ -84,4 +84,33 @@ public class DoctorService : IDoctorService
             r.EndTime.ToString("HH:mm")
         ));
     }
+
+    public async Task<IEnumerable<DoctorModel.AvailableSlotResponse>> GetAvailableSlotsAsync(Guid id, DateTime startDate, DateTime endDate)
+    {
+        if (startDate > endDate)
+            throw new BusinessRuleException("El rango de fechas es inválido.", "INVALID_DATE_RANGE");
+
+        var startDateOnly = DateOnly.FromDateTime(startDate);
+        var endDateOnly = DateOnly.FromDateTime(endDate);
+
+        var slots = await _unitOfWork.Repository<AvailabilitySlot>()
+            .FindAsync(s =>
+                s.AvailabilityRule.DoctorId == id &&
+                s.SlotDate >= startDateOnly &&
+                s.SlotDate <= endDateOnly &&
+                s.Status == SlotStatus.Available &&
+                !s.Deleted, 
+                "AvailabilityRule" 
+            );
+
+        return slots
+            .OrderBy(s => s.SlotDate)
+            .ThenBy(s => s.StartTime)
+            .Select(s => new DoctorModel.AvailableSlotResponse(
+                s.Id,
+                s.SlotDate.ToDateTime(TimeOnly.MinValue),
+                s.StartTime.ToTimeSpan(),
+                s.EndTime.ToTimeSpan()
+            ));
+    }
 }
