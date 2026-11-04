@@ -38,13 +38,13 @@ public class AvailabilityService : IAvailabilityService
             .FindAsync(r => r.DoctorId == request.DoctorId && r.Month == today.Month && r.Year == today.Year);
 
         var protectedRules = new List<AvailabilityRule>();
+        var retainedSlots = new List<AvailabilitySlot>();
 
         foreach (var rule in existingRules)
         {
             var slots = await _unitOfWork.Repository<AvailabilitySlot>().FindAsync(s => s.AvailabilityRuleId == rule.Id);
-            var hasBookedSlots = slots.Any(s => s.Status != SlotStatus.Available);
 
-            if (!overwrite || hasBookedSlots)
+            if (!overwrite)
             {
                 protectedRules.Add(rule);
                 continue;
@@ -52,9 +52,25 @@ public class AvailabilityService : IAvailabilityService
 
             foreach (var slot in slots)
             {
-                _unitOfWork.Repository<AvailabilitySlot>().Delete(slot);
+                var slotDateTime = slot.SlotDate.ToDateTime(slot.StartTime);
+                var isFuture = slotDateTime > DateTime.Now;
+
+                if (slot.Status == SlotStatus.Available && isFuture)
+                    _unitOfWork.Repository<AvailabilitySlot>().Delete(slot);
+                else
+                    retainedSlots.Add(slot);
             }
-            _unitOfWork.Repository<AvailabilityRule>().Delete(rule);
+
+            // Se conserva la regla mientras tenga slots históricos o que no se puedan modificar.
+            var ruleIsRequested = request.Days.Any(day =>
+                SpanishDayOfWeek.TryParse(day.Day, out var requestedDay) &&
+                requestedDay == rule.DayOfWeek &&
+                TimeOnly.FromTimeSpan(day.StartTime) == rule.StartTime &&
+                TimeOnly.FromTimeSpan(day.EndTime) == rule.EndTime);
+
+            if (!ruleIsRequested && slots.All(s => s.Status == SlotStatus.Available &&
+                                                   s.SlotDate.ToDateTime(s.StartTime) > DateTime.Now))
+                _unitOfWork.Repository<AvailabilityRule>().Delete(rule);
         }
 
         foreach (var dayConfig in request.Days)
@@ -75,16 +91,25 @@ public class AvailabilityService : IAvailabilityService
                     "AVAILABILITY_OVERLAP");
             }
 
-            var rule = new AvailabilityRule(
-                doctor,
-                today.Month,
-                today.Year,
-                dayOfWeek,
-                ruleStartTime,
-                ruleEndTime
-            );
+            var rule = overwrite
+                ? existingRules.FirstOrDefault(r => r.DayOfWeek == dayOfWeek &&
+                                                    r.StartTime == ruleStartTime &&
+                                                    r.EndTime == ruleEndTime)
+                : null;
 
-            await _unitOfWork.Repository<AvailabilityRule>().AddAsync(rule);
+            if (rule is null)
+            {
+                rule = new AvailabilityRule(
+                    doctor,
+                    today.Month,
+                    today.Year,
+                    dayOfWeek,
+                    ruleStartTime,
+                    ruleEndTime
+                );
+
+                await _unitOfWork.Repository<AvailabilityRule>().AddAsync(rule);
+            }
 
             for (var date = today; date <= endOfMonth; date = date.AddDays(1))
             {
@@ -98,6 +123,14 @@ public class AvailabilityService : IAvailabilityService
                     var slotEndTime = slotStartTime.AddMinutes(30);
 
                     var slotDateOnly = DateOnly.FromDateTime(date);
+
+                    if (retainedSlots.Any(s => s.SlotDate == slotDateOnly &&
+                                               s.StartTime < slotEndTime &&
+                                               slotStartTime < s.EndTime))
+                    {
+                        slotStartTime = slotEndTime;
+                        continue;
+                    }
 
                     var slot = new AvailabilitySlot(
                         rule,

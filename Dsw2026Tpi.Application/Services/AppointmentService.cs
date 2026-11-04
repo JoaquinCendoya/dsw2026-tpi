@@ -54,7 +54,6 @@ public class AppointmentService : IAppointmentService
 
         await using var transaction = await _unitOfWork.BeginTransactionAsync();
 
-        availabilitySlot.Book();
         var appointment = new Appointment(availabilitySlot, patient, request.Reason);
 
         _unitOfWork.Repository<AvailabilitySlot>().Update(availabilitySlot);
@@ -182,4 +181,3 @@ public class AppointmentService : IAppointmentService
             id, attended ? "Asistido" : "Ausente");
     }
 }
-

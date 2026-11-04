@@ -111,5 +111,43 @@ namespace Dsw2026Tpi.Tests
                 _service.GenerateMonthlyAvailabilityAsync(request)
             );
         }
+
+        [Fact]
+        public async Task GenerateMonthlyAvailabilityAsync_AlSobrescribir_ConservaSlotsPasadosYReservados()
+        {
+            var rule = new AvailabilityRule(
+                new Doctor("Dr. Test", "MP-123", _testSpecialty, _testDoctorId),
+                DateTime.Today.Month,
+                DateTime.Today.Year,
+                DateTime.Today.DayOfWeek,
+                new TimeOnly(9, 0),
+                new TimeOnly(11, 0));
+            var futureDate = DateOnly.FromDateTime(DateTime.Today.AddDays(7));
+            while (futureDate.DayOfWeek != rule.DayOfWeek)
+                futureDate = futureDate.AddDays(1);
+
+            var futureAvailableSlot = new AvailabilitySlot(rule, futureDate, new TimeOnly(9, 0), new TimeOnly(9, 30));
+            var bookedSlot = new AvailabilitySlot(rule, futureDate, new TimeOnly(9, 30), new TimeOnly(10, 0));
+            bookedSlot.Book();
+            var pastDate = DateOnly.FromDateTime(DateTime.Today.AddDays(-1));
+            var pastSlot = new AvailabilitySlot(rule, pastDate, new TimeOnly(9, 0), new TimeOnly(9, 30));
+
+            _mockRuleRepo.FindAsync(Arg.Any<Expression<Func<AvailabilityRule, bool>>>())
+                .Returns(new List<AvailabilityRule> { rule });
+            _mockSlotRepo.FindAsync(Arg.Any<Expression<Func<AvailabilitySlot, bool>>>())
+                .Returns(new List<AvailabilitySlot> { futureAvailableSlot, bookedSlot, pastSlot });
+            _mockHolidayService.IsHolidayAsync(Arg.Any<DateTime>()).Returns(false);
+            var request = new AvailabilityModel.Request(
+                _testDoctorId,
+                [new AvailabilityModel.DayConfig(_testDiaAtencion, _testHoraInicio, _testHoraFin)]);
+
+            await _service.GenerateMonthlyAvailabilityAsync(request, overwrite: true);
+
+            _mockSlotRepo.Received(1).Delete(futureAvailableSlot);
+            _mockSlotRepo.DidNotReceive().Delete(bookedSlot);
+            _mockSlotRepo.DidNotReceive().Delete(pastSlot);
+            await _mockRuleRepo.DidNotReceive().AddAsync(Arg.Any<AvailabilityRule>());
+            _mockRuleRepo.DidNotReceive().Delete(rule);
+        }
     }
 }

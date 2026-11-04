@@ -5,6 +5,7 @@ using Dsw2026Tpi.CrossCutting.Models;
 using Dsw2026Tpi.Domain.Entities;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Mvc.ModelBinding;
 using Microsoft.AspNetCore.RateLimiting;
 
 namespace Dsw2026Tpi.Api.Controllers;
@@ -23,14 +24,36 @@ public class DoctorController : AppController
     /// <summary>
     /// Obtiene un listado paginado de médicos activos.
     /// </summary>
-    /// <param name="request">Parámetros de búsqueda, paginación y orden (nombre asc/desc).</param>
+    /// <param name="request">Parámetros de búsqueda, especialidad, paginación y orden (nombre asc/desc).</param>
     /// <response code="200">Listado paginado de médicos.</response>
+    /// <response code="400">El identificador de especialidad no tiene formato GUID.</response>
+    /// <response code="401">No se proporcionó un token válido.</response>
     [HttpGet]
-    [Authorize(Policy = Policies.AdminPolicy)]
+    [Authorize]
     [ProducesResponseType(StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status401Unauthorized)]
     public async Task<IActionResult> GetAll([FromQuery] DoctorModel.SearchRequest request)
     {
         var result = await _service.GetAll(request);
+        return Ok(result);
+    }
+
+    /// <summary>
+    /// Obtiene las opciones de médicos de una especialidad para selectores de pacientes.
+    /// </summary>
+    /// <param name="specialtyId">Id de la especialidad elegida.</param>
+    /// <response code="200">Opciones de médicos ordenadas por nombre.</response>
+    /// <response code="400">El identificador de especialidad no tiene formato GUID.</response>
+    /// <response code="401">No se proporcionó un token válido.</response>
+    [HttpGet("by-specialty/{specialtyId}/options")]
+    [Authorize]
+    [ProducesResponseType(typeof(IEnumerable<DoctorModel.OptionResponse>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status401Unauthorized)]
+    public async Task<IActionResult> GetOptions([FromRoute] Guid specialtyId)
+    {
+        var result = await _service.GetOptions(specialtyId);
         return Ok(result);
     }
 
@@ -42,6 +65,8 @@ public class DoctorController : AppController
     [HttpGet("{id:guid}/availabilities")]
     [Authorize(Policy = Policies.PatientPolicy)]
     [ProducesResponseType(typeof(IEnumerable<DoctorModel.AvailabilityResponse>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status403Forbidden)]
     public async Task<IActionResult> GetAvailabilities([FromRoute] Guid id)
     {
         var result = await _service.GetAvailabilities(id);
@@ -59,6 +84,8 @@ public class DoctorController : AppController
     [Authorize(Policy = Policies.AdminPolicy)]
     [ProducesResponseType(typeof(DoctorModel.Response), StatusCodes.Status201Created)]
     [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status403Forbidden)]
     public async Task<IActionResult> Create([FromBody] DoctorModel.Request request)
     {
         var result = await _service.Create(request);
@@ -78,6 +105,8 @@ public class DoctorController : AppController
     [ProducesResponseType(typeof(DoctorModel.Response), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status400BadRequest)]
     [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status404NotFound)]
+    [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status403Forbidden)]
     public async Task<IActionResult> Update([FromRoute] Guid id, [FromBody] DoctorModel.Request request)
     {
         var result = await _service.Update(id, request);
@@ -94,6 +123,8 @@ public class DoctorController : AppController
     [Authorize(Policy = Policies.AdminPolicy)]
     [ProducesResponseType(typeof(string), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status404NotFound)]
+    [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status403Forbidden)]
     public async Task<IActionResult> Delete([FromRoute] Guid id)
     {
         await _service.Delete(id);
@@ -101,15 +132,27 @@ public class DoctorController : AppController
     }
 
     /// <summary>
-    /// Consulta los turnos libres de un médico para un rango de fechas.
+    /// Consulta los slots persistidos futuros y libres de un médico para un rango de fechas.
     /// </summary>
+    /// <param name="id">Id del médico.</param>
+    /// <param name="startDate">Fecha inicial inclusiva del rango.</param>
+    /// <param name="endDate">Fecha final inclusiva del rango.</param>
+    /// <response code="200">Slots persistidos disponibles, ordenados por fecha y hora; lista vacía si no hay coincidencias.</response>
+    /// <response code="400">El rango de fechas es inválido o falta una fecha.</response>
+    /// <response code="401">No se proporcionó un token válido.</response>
+    /// <response code="403">El usuario autenticado no es un paciente.</response>
+    /// <response code="404">No existe un médico activo con el Id indicado.</response>
     [HttpGet("{id:guid}/available-slots")]
-    [Authorize(Policy = Policies.PatientPolicy)] // Requiere que el paciente esté autenticado para reservar[cite: 90]
+    [Authorize(Policy = Policies.PatientPolicy)]
     [ProducesResponseType(typeof(IEnumerable<DoctorModel.AvailableSlotResponse>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status403Forbidden)]
+    [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status404NotFound)]
     public async Task<IActionResult> GetAvailableSlots(
         [FromRoute] Guid id,
-        [FromQuery] DateTime startDate,
-        [FromQuery] DateTime endDate)
+        [FromQuery, BindRequired] DateTime startDate,
+        [FromQuery, BindRequired] DateTime endDate)
     {
         var result = await _service.GetAvailableSlotsAsync(id, startDate, endDate);
         return Ok(result);
