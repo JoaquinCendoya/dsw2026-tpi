@@ -124,6 +124,8 @@ public class DoctorCatalogTests
             new TimeOnly(9, 0), new TimeOnly(9, 30));
         var bookedSlot = new AvailabilitySlot(rule, DateOnly.FromDateTime(DateTime.Today.AddDays(1)),
             new TimeOnly(9, 30), new TimeOnly(10, 0));
+        var pastSlotToday = new AvailabilitySlot(rule, DateOnly.FromDateTime(DateTime.Today),
+            TimeOnly.MinValue, new TimeOnly(0, 30));
         bookedSlot.Book();
 
         await unitOfWork.Repository<Specialty>().AddAsync(specialty);
@@ -132,9 +134,11 @@ public class DoctorCatalogTests
         await unitOfWork.Repository<AvailabilitySlot>().AddAsync(firstSlot);
         await unitOfWork.Repository<AvailabilitySlot>().AddAsync(secondSlot);
         await unitOfWork.Repository<AvailabilitySlot>().AddAsync(bookedSlot);
+        await unitOfWork.Repository<AvailabilitySlot>().AddAsync(pastSlotToday);
         context.Entry(firstSlot).Property(slot => slot.RowVersion).CurrentValue = [];
         context.Entry(secondSlot).Property(slot => slot.RowVersion).CurrentValue = [];
         context.Entry(bookedSlot).Property(slot => slot.RowVersion).CurrentValue = [];
+        context.Entry(pastSlotToday).Property(slot => slot.RowVersion).CurrentValue = [];
         await unitOfWork.SaveChangesAsync();
 
         var result = await new DoctorService(unitOfWork).GetAvailableSlotsAsync(
@@ -145,6 +149,13 @@ public class DoctorCatalogTests
         result.Select(slot => slot.AvailabilitySlotId).Should().ContainInOrder(secondSlot.Id, firstSlot.Id);
         result.Should().HaveCount(2);
         result.Should().NotContain(slot => slot.AvailabilitySlotId == bookedSlot.Id);
+        result.Should().NotContain(slot => slot.AvailabilitySlotId == pastSlotToday.Id);
+
+        var emptyResult = await new DoctorService(unitOfWork).GetAvailableSlotsAsync(
+            doctor.Id,
+            DateTime.Today.AddDays(-2),
+            DateTime.Today.AddDays(-1));
+        emptyResult.Should().BeEmpty();
     }
 
     [Fact]
