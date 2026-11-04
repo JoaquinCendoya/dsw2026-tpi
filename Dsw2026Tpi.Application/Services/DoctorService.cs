@@ -102,14 +102,23 @@ public class DoctorService : IDoctorService
         if (startDate > endDate)
             throw new BusinessRuleException("El rango de fechas es inválido.", "INVALID_DATE_RANGE");
 
+        _ = await _unitOfWork.Repository<Doctor>().GetByIdAsync(id)
+            ?? throw new EntityNotFoundException(nameof(Doctor));
+
         var startDateOnly = DateOnly.FromDateTime(startDate);
         var endDateOnly = DateOnly.FromDateTime(endDate);
+        var now = DateTime.Now;
+        var today = DateOnly.FromDateTime(now);
+        var currentTime = TimeOnly.FromDateTime(now);
+        if (startDateOnly < today)
+            startDateOnly = today;
 
         var slots = await _unitOfWork.Repository<AvailabilitySlot>()
             .FindAsync(s =>
                 s.AvailabilityRule.DoctorId == id &&
                 s.SlotDate >= startDateOnly &&
                 s.SlotDate <= endDateOnly &&
+                (s.SlotDate > today || s.StartTime > currentTime) &&
                 s.Status == SlotStatus.Available &&
                 !s.Deleted,
                 "AvailabilityRule"
