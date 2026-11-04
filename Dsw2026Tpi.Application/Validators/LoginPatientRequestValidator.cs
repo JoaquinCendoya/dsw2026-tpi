@@ -12,7 +12,7 @@ public class LoginPatientRequestValidator : AbstractValidator<LoginPatientModel.
             .EmailAddress().WithMessage("El formato de email no es válido.");
 
         RuleFor(x => x.Dni)
-            .Must(dni => dni.ToString().Length is 7 or 8)
-            .WithMessage("El DNI debe tener 7 u 8 dígitos.");
+            .Must(dni => dni.ToString().Length is 7 or 8 or 9)
+            .WithMessage("El DNI debe tener 7, 8 o 9 dígitos.");
     }
 }

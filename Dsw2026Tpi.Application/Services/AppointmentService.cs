@@ -1,12 +1,13 @@
-using Dsw2026Tpi.Application.Models;
 using Dsw2026Tpi.Application.Interfaces;
 using Dsw2026Tpi.Application.Mappings;
+using Dsw2026Tpi.Application.Models;
 using Dsw2026Tpi.CrossCutting.Exceptions;
 using Dsw2026Tpi.Domain.Entities;
+using Dsw2026Tpi.Domain.Enums;
 using Dsw2026Tpi.Domain.Interfaces;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
-using Dsw2026Tpi.Domain.Enums;
+using static Microsoft.EntityFrameworkCore.DbLoggerCategory;
 
 namespace Dsw2026Tpi.Application.Services;
 
@@ -61,7 +62,6 @@ public class AppointmentService : IAppointmentService
 
         try
         {
-
             await _unitOfWork.SaveChangesAsync();
         }
         catch (DbUpdateConcurrencyException)
@@ -78,10 +78,22 @@ public class AppointmentService : IAppointmentService
         return appointment.ToSearchResponse();
     }
 
-    public async Task CancelAsync(Guid id)
+    // VALIDACIÓN DE PACIENTE: Firma adaptada para verificar que el turno pertenezca al paciente autenticado
+    public async Task CancelAsync(Guid id, long patientDni)
     {
         var appointment = await _unitOfWork.Repository<Appointment>().GetByIdAsync(id)
             ?? throw new EntityNotFoundException(nameof(Appointment));
+
+        // Cargar el paciente asociado para constatar identidad de forma segura
+        var patient = await _unitOfWork.Repository<Patient>().GetByIdAsync(appointment.PatientId)
+            ?? throw new EntityNotFoundException(nameof(Patient));
+
+        if (patient.Dni != patientDni.ToString())
+        {
+            _logger.LogWarning("Intento de cancelación no autorizado. Turno: {AppointmentId}, Solicitante DNI: {Dni}", id, patientDni);
+            throw new BusinessRuleException("El turno indicado no pertenece al paciente autenticado.", "UNAUTHORIZED_APPOINTMENT_ACCESS");
+        }
+
         var availabilitySlot = await _unitOfWork.Repository<AvailabilitySlot>().GetByIdAsync(appointment.AvailabilitySlotId)
             ?? throw new EntityNotFoundException(nameof(AvailabilitySlot));
 
@@ -93,21 +105,27 @@ public class AppointmentService : IAppointmentService
 
         await _unitOfWork.SaveChangesAsync();
 
-        _logger.LogInformation("Turno cancelado. AppointmentId: {AppointmentId}", id);
+        _logger.LogInformation("Turno cancelado de forma segura por el paciente. AppointmentId: {AppointmentId}", id);
     }
 
-    public async Task<IEnumerable<AppointmentModel.SearchResponse>> GetByPatientDniAsync(AppointmentModel.PatientDto request)
+    // VALIDACIÓN DE PACIENTE: Método paginado que consulta únicamente mediante el DNI seguro extraído del JWT
+    public async Task<Pagination<AppointmentModel.SearchResponse>> GetByPatientDniAsync(AppointmentModel.PatientDto request,int pageSize = 10 , int pageIndex = 1)
     {
         string dniString = request.Dni.ToString();
         var patients = await _unitOfWork.Repository<Patient>().FindAsync(p => p.Dni == dniString);
         var patient = patients.FirstOrDefault()
                    ?? throw new EntityNotFoundException(nameof(Patient));
 
-        var appointments = await _unitOfWork.Repository<Appointment>()
-            .FindAsync(a => a.PatientId == patient.Id && a.Status != AppointmentStatus.Cancelled && a.Status != AppointmentStatus.Attended,
-                "AvailabilitySlot.AvailabilityRule.Doctor.Specialty", "Patient");
+        // Trae los turnos paginados activos mapeando las relaciones necesarias requeridas por las tarjetas de la UI
+        var appointments = await _unitOfWork.Repository<Appointment>().PaginateAsync(
+            pageSize,
+            pageIndex,
+            a => a.PatientId == patient.Id && a.Status == AppointmentStatus.Booked, // Filtrar solo activos según RN
+            a => a.AvailabilitySlot.SlotDate,
+            false, // Orden cronológico ascendente (los más próximos primero)
+            "AvailabilitySlot.AvailabilityRule.Doctor.Specialty", "Patient");
 
-        return appointments.Select(a => a.ToSearchResponse());
+        return appointments.Map(a => a.ToSearchResponse());
     }
 
     public async Task<Pagination<AppointmentModel.SearchResponse>> GetByDateAsync(AppointmentModel.DailyRequest request)
@@ -119,9 +137,12 @@ public class AppointmentService : IAppointmentService
         return appointments.Map(a => a.ToSearchResponse());
     }
 
+
+    // MÁS DATOS EN LA BÚSQUEDA: Filtros dinámicos robustos expandidos por Rango de Fechas y Estado (Enum)
     public async Task<Pagination<AppointmentModel.SearchResponse>> SearchAsync(AppointmentModel.SearchRequest request)
     {
         string? dniValue = request.Dni?.ToString();
+        AppointmentStatus? statusFilter = request.Status;
 
         var appointments = await _unitOfWork.Repository<Appointment>().PaginateAsync(
             request.PageSize,
@@ -129,7 +150,10 @@ public class AppointmentService : IAppointmentService
             a => (request.SpecialtyId == null || a.AvailabilitySlot.AvailabilityRule.Doctor.SpecialtyId == request.SpecialtyId) &&
                   (request.DoctorId == null || a.AvailabilitySlot.AvailabilityRule.DoctorId == request.DoctorId) &&
                   (dniValue == null || a.Patient.Dni == dniValue) &&
-                  (request.Date == null || a.AvailabilitySlot.SlotDate == request.Date),
+                  (statusFilter == null || a.Status == statusFilter.Value) &&
+                  (request.Date == null || a.AvailabilitySlot.SlotDate == request.Date.Value) &&
+                  (request.StartDate == null || a.AvailabilitySlot.SlotDate >= request.StartDate.Value) &&
+                  (request.EndDate == null || a.AvailabilitySlot.SlotDate <= request.EndDate.Value),
                   a => a.AvailabilitySlot.SlotDate,
             request.Descending,
             "AvailabilitySlot.AvailabilityRule.Doctor.Specialty", "Patient");

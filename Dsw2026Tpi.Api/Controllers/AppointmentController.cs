@@ -5,6 +5,7 @@ using Dsw2026Tpi.CrossCutting.Models;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.RateLimiting;
+using System.Security.Claims; // Requerido para extraer los Claims del JWT
 
 namespace Dsw2026Tpi.Api.Controllers;
 
@@ -23,11 +24,6 @@ public class AppointmentController : ControllerBase
     /// <summary>
     /// Reserva un turno médico para un paciente.
     /// </summary>
-    /// <param name="request">Datos de la reserva (médico, disponibilidad, paciente y motivo).</param>
-    /// <response code="201">Turno reservado exitosamente.</response>
-    /// <response code="400">Los datos enviados no son válidos.</response>
-    /// <response code="404">El médico o la disponibilidad indicados no existen.</response>
-    /// <response code="409">El turno ya fue reservado por otro paciente.</response>
     [HttpPost]
     [Authorize(Policy = Policies.PatientPolicy)]
     [EnableRateLimiting("AppointmentPolicy")]
@@ -42,42 +38,60 @@ public class AppointmentController : ControllerBase
     }
 
     /// <summary>
-    /// Obtiene los turnos activos de un paciente según su DNI.
+    /// Obtiene los turnos activos del paciente autenticado de manera segura usando su Token JWT con soporte de paginación.
     /// </summary>
-    /// <param name="dni">DNI del paciente.</param>
-    /// <response code="200">Listado de turnos activos del paciente.</response>
+    /// <response code="200">Listado paginado de turnos activos del paciente.</response>
+    /// <response code="403">No se pudo validar la identidad del paciente desde el token.</response>
     [HttpGet("patient")]
     [Authorize(Policy = Policies.PatientPolicy)]
     [ProducesResponseType(StatusCodes.Status200OK)]
-    public async Task<IActionResult> GetByPatientAsync([FromQuery] long dni)
+    [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status403Forbidden)]
+    public async Task<IActionResult> GetByPatientAsync([FromQuery] int pageSize = 10, [FromQuery] int pageIndex = 1)
     {
-        var response = await _service.GetByPatientDniAsync(new AppointmentModel.PatientDto(dni));
+        // VALIDACIÓN DE PACIENTE: Extraer el DNI desde el Claim del token JWT para evitar suplantación de identidad (IDOR)
+        var dniClaim = User.FindFirst(ClaimTypes.NameIdentifier)?.Value ?? User.FindFirst("dni")?.Value;
+
+        if (string.IsNullOrEmpty(dniClaim) || !long.TryParse(dniClaim, out long tokenDni))
+        {
+            return StatusCode(StatusCodes.Status403Forbidden,
+                new ErrorResponse(
+                    "FORBIDDEN_IDENTITY",
+                    "No se pudo resolver la identidad del paciente a través del token provisto."));
+        }
+
+        // Se envía a la capa de aplicación el DNI extraído del token de forma segura al igual que los datos de paginado
+        var response = await _service.GetByPatientDniAsync(new AppointmentModel.PatientDto(tokenDni), pageSize, pageIndex);
         return Ok(response);
     }
 
     /// <summary>
-    /// Cancela un turno reservado.
+    /// Cancela un turno reservado validando la pertenencia al paciente autenticado.
     /// </summary>
-    /// <param name="id">Id del turno a cancelar.</param>
-    /// <response code="200">Turno cancelado exitosamente.</response>
-    /// <response code="404">No existe un turno con el Id indicado.</response>
-    /// <response code="409">El turno no puede cancelarse en su estado actual.</response>
     [HttpDelete("{id}")]
     [Authorize(Policy = Policies.PatientPolicy)]
     [ProducesResponseType(StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status403Forbidden)]
     [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status404NotFound)]
     [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status409Conflict)]
     public async Task<IActionResult> CancelAsync([FromRoute] Guid id)
     {
-        await _service.CancelAsync(id);
+        // VALIDACIÓN DE PACIENTE: Extraer el DNI desde el Claim del token JWT
+        var dniClaim = User.FindFirst(ClaimTypes.NameIdentifier)?.Value ?? User.FindFirst("dni")?.Value;
+
+        if (string.IsNullOrEmpty(dniClaim) || !long.TryParse(dniClaim, out long tokenDni))
+        {
+            return StatusCode(StatusCodes.Status403Forbidden,
+                new ErrorResponse("FORBIDDEN_IDENTITY", "Token inválido."));
+        }
+
+        // Se delega al servicio el ID del turno y el DNI seguro para constatar que le pertenece previo a la cancelación
+        await _service.CancelAsync(id, tokenDni);
         return Ok("ok");
     }
 
     /// <summary>
     /// Obtiene los turnos de una fecha específica (uso administrativo).
     /// </summary>
-    /// <param name="request">Datos de la consulta (fecha, tamaño de página, número de página y orden).</param>
-    /// <response code="200">Listado paginado de turnos de la fecha indicada.</response>
     [HttpGet]
     [Authorize(Policy = Policies.AdminPolicy)]
     [ProducesResponseType(StatusCodes.Status200OK)]
@@ -88,15 +102,26 @@ public class AppointmentController : ControllerBase
     }
 
     /// <summary>
-    /// Búsqueda avanzada de turnos combinando filtros (uso administrativo).
+    /// Búsqueda avanzada de turnos combinando filtros ampliados con rango de fechas y estados (uso administrativo).
     /// </summary>
-    /// <param name="request">Datos de la consulta (tamaño de página, número de página, filtros y orden).</param>
-    /// <response code="200">Listado paginado de turnos según los filtros aplicados.</response>
+    /// <param name="request">Datos de la consulta enriquecidos (pageSize, pageIndex, specialtyId, doctorId, dni, startDate, endDate, status, orden).</param>
+    /// <response code="200">Listado paginado de turnos según los filtros aplicados con datos temporales.</response>
+    /// <response code="400">El rango de fechas provisto es inválido.</response>
     [HttpGet("search")]
     [Authorize(Policy = Policies.AdminPolicy)]
     [ProducesResponseType(StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status400BadRequest)]
     public async Task<IActionResult> SearchAsync([FromQuery] AppointmentModel.SearchRequest request)
     {
+        // Validación preventiva de rango consistente utilizando DateOnly?
+        if (request.StartDate.HasValue && request.EndDate.HasValue && request.StartDate.Value > request.EndDate.Value)
+        {
+            return BadRequest(new ErrorResponse(
+                "INVALID_DATE_RANGE",
+                "La fecha de inicio (StartDate) no puede ser posterior a la fecha de fin (EndDate)."
+            ));
+        }
+
         var response = await _service.SearchAsync(request);
         return Ok(response);
     }
