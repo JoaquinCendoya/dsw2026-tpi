@@ -2,6 +2,7 @@ using System.Reflection;
 using Dsw2026Tpi.Api.Controllers;
 using Dsw2026Tpi.Application.Models;
 using Dsw2026Tpi.Application.Services;
+using Dsw2026Tpi.CrossCutting.Exceptions;
 using Dsw2026Tpi.CrossCutting.Identity;
 using Dsw2026Tpi.Data;
 using Dsw2026Tpi.Data.Repositories;
@@ -105,6 +106,59 @@ public class DoctorCatalogTests
         result.Should().HaveCount(2);
         result[0].Should().Be(new DoctorModel.OptionResponse(doctorAna.Id, "Dra. Ana"));
         result[1].Should().Be(new DoctorModel.OptionResponse(doctorZoe.Id, "Dra. Zoe"));
+    }
+
+    [Fact]
+    public async Task GetAvailableSlots_DevuelveSoloSlotsLibresFuturosOrdenadosConSuIdPersistido()
+    {
+        await using var context = CreateContext();
+        var unitOfWork = new UnitOfWork(context);
+        var specialty = new Specialty("Clínica", "General");
+        var doctor = new Doctor("Dra. Ana", "MAT-1", specialty);
+        var rule = new AvailabilityRule(doctor, DateTime.Today.AddDays(1).Month,
+            DateTime.Today.AddDays(1).Year, DateTime.Today.AddDays(1).DayOfWeek,
+            new TimeOnly(9, 0), new TimeOnly(11, 0));
+        var firstSlot = new AvailabilitySlot(rule, DateOnly.FromDateTime(DateTime.Today.AddDays(1)),
+            new TimeOnly(10, 0), new TimeOnly(10, 30));
+        var secondSlot = new AvailabilitySlot(rule, DateOnly.FromDateTime(DateTime.Today.AddDays(1)),
+            new TimeOnly(9, 0), new TimeOnly(9, 30));
+        var bookedSlot = new AvailabilitySlot(rule, DateOnly.FromDateTime(DateTime.Today.AddDays(1)),
+            new TimeOnly(9, 30), new TimeOnly(10, 0));
+        bookedSlot.Book();
+
+        await unitOfWork.Repository<Specialty>().AddAsync(specialty);
+        await unitOfWork.Repository<Doctor>().AddAsync(doctor);
+        await unitOfWork.Repository<AvailabilityRule>().AddAsync(rule);
+        await unitOfWork.Repository<AvailabilitySlot>().AddAsync(firstSlot);
+        await unitOfWork.Repository<AvailabilitySlot>().AddAsync(secondSlot);
+        await unitOfWork.Repository<AvailabilitySlot>().AddAsync(bookedSlot);
+        context.Entry(firstSlot).Property(slot => slot.RowVersion).CurrentValue = [];
+        context.Entry(secondSlot).Property(slot => slot.RowVersion).CurrentValue = [];
+        context.Entry(bookedSlot).Property(slot => slot.RowVersion).CurrentValue = [];
+        await unitOfWork.SaveChangesAsync();
+
+        var result = await new DoctorService(unitOfWork).GetAvailableSlotsAsync(
+            doctor.Id,
+            DateTime.Today,
+            DateTime.Today.AddDays(2));
+
+        result.Select(slot => slot.AvailabilitySlotId).Should().ContainInOrder(secondSlot.Id, firstSlot.Id);
+        result.Should().HaveCount(2);
+        result.Should().NotContain(slot => slot.AvailabilitySlotId == bookedSlot.Id);
+    }
+
+    [Fact]
+    public async Task GetAvailableSlots_RechazaRangoInvalidoYMedicoInexistente()
+    {
+        await using var context = CreateContext();
+        var service = new DoctorService(new UnitOfWork(context));
+
+        var invalidRange = await Assert.ThrowsAsync<BusinessRuleException>(() => service.GetAvailableSlotsAsync(
+            Guid.NewGuid(), DateTime.Today.AddDays(2), DateTime.Today.AddDays(1)));
+        invalidRange.Error.ErrorCode.Should().Be("INVALID_DATE_RANGE");
+
+        await Assert.ThrowsAsync<EntityNotFoundException>(() => service.GetAvailableSlotsAsync(
+            Guid.NewGuid(), DateTime.Today, DateTime.Today.AddDays(1)));
     }
 
     [Fact]

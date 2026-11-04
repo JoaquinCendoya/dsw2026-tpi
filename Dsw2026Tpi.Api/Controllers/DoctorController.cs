@@ -5,6 +5,7 @@ using Dsw2026Tpi.CrossCutting.Models;
 using Dsw2026Tpi.Domain.Entities;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Mvc.ModelBinding;
 using Microsoft.AspNetCore.RateLimiting;
 
 namespace Dsw2026Tpi.Api.Controllers;
@@ -131,18 +132,27 @@ public class DoctorController : AppController
     }
 
     /// <summary>
-    /// Consulta los turnos libres de un médico para un rango de fechas.
+    /// Consulta los slots persistidos futuros y libres de un médico para un rango de fechas.
     /// </summary>
+    /// <param name="id">Id del médico.</param>
+    /// <param name="startDate">Fecha inicial inclusiva del rango.</param>
+    /// <param name="endDate">Fecha final inclusiva del rango.</param>
+    /// <response code="200">Slots persistidos disponibles, ordenados por fecha y hora; lista vacía si no hay coincidencias.</response>
+    /// <response code="400">El rango de fechas es inválido o falta una fecha.</response>
+    /// <response code="401">No se proporcionó un token válido.</response>
+    /// <response code="403">El usuario autenticado no es un paciente.</response>
+    /// <response code="404">No existe un médico activo con el Id indicado.</response>
     [HttpGet("{id:guid}/available-slots")]
     [Authorize(Policy = Policies.PatientPolicy)]
     [ProducesResponseType(typeof(IEnumerable<DoctorModel.AvailableSlotResponse>), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status400BadRequest)]
     [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status401Unauthorized)]
     [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status403Forbidden)]
+    [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status404NotFound)]
     public async Task<IActionResult> GetAvailableSlots(
         [FromRoute] Guid id,
-        [FromQuery] DateTime startDate,
-        [FromQuery] DateTime endDate)
+        [FromQuery, BindRequired] DateTime startDate,
+        [FromQuery, BindRequired] DateTime endDate)
     {
         var result = await _service.GetAvailableSlotsAsync(id, startDate, endDate);
         return Ok(result);
