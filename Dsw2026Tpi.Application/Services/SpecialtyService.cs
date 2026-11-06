@@ -77,13 +77,21 @@ public class SpecialtyService : ISpecialtyService
         var specialty = await _unitOfWork.Repository<Specialty>().GetByIdAsync(id)
             ?? throw new EntityNotFoundException(nameof(Specialty));
 
-        var hasDoctors = (await _unitOfWork.Repository<Doctor>()
-            .FindAsync(d => d.SpecialtyId == id))
-            .Any();
+        // Borrado lógico en cascada: dar de baja a todos los médicos asignados y sus disponibilidades
+        var doctors = await _unitOfWork.Repository<Doctor>()
+            .FindAsync(d => d.SpecialtyId == id);
 
-        if (hasDoctors)
+        foreach (var doctor in doctors)
         {
-            throw new ConflictException("No se puede eliminar la especialidad porque está asignada a uno o más médicos.", "SPECIALTY_IN_USE");
+            var rules = await _unitOfWork.Repository<AvailabilityRule>()
+                .FindAsync(r => r.DoctorId == doctor.Id);
+
+            foreach (var rule in rules)
+            {
+                _unitOfWork.Repository<AvailabilityRule>().Delete(rule);
+            }
+
+            _unitOfWork.Repository<Doctor>().Delete(doctor);
         }
 
         _unitOfWork.Repository<Specialty>().Delete(specialty);

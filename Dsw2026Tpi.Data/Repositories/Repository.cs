@@ -1,4 +1,4 @@
-﻿using Dsw2026Tpi.Domain.Entities;
+using Dsw2026Tpi.Domain.Entities;
 using Dsw2026Tpi.Domain.Interfaces;
 using Microsoft.EntityFrameworkCore;
 using System.Linq.Expressions;
@@ -66,8 +66,9 @@ public class Repository<T> : IRepository<T> where T : EntityBase
     bool descending = false,
     params string[] includes)
     {
-        pageSize = Math.Abs(pageSize);
-        pageIndex = Math.Abs(pageIndex) == 0 ? 0 : Math.Abs(pageIndex) - 1;
+        pageSize = Math.Abs(pageSize) == 0 ? 10 : Math.Abs(pageSize);
+        var requestedPageIndex = pageIndex <= 0 ? 1 : Math.Abs(pageIndex);
+        var zeroBasedPageIndex = requestedPageIndex - 1;
 
         var query = _dbSet.Where(e => !e.Deleted);
 
@@ -83,23 +84,23 @@ public class Repository<T> : IRepository<T> where T : EntityBase
         async Task<Pagination<T>> GetPage(int skip, int take)
         {
             var data = await filtered.Skip(skip).Take(take).ToListAsync();
-            return new Pagination<T>(pageSize, pageIndex, total, data);
+            return new Pagination<T>(pageSize, requestedPageIndex, total, data);
         }
 
-        if (total > pageSize * pageIndex)
-            return await GetPage(pageIndex * pageSize, pageSize);
+        if (total > pageSize * zeroBasedPageIndex)
+            return await GetPage(zeroBasedPageIndex * pageSize, pageSize);
 
         if (total < pageSize)
-            return new Pagination<T>(pageSize, pageIndex, total, await filtered.ToListAsync());
+            return new Pagination<T>(pageSize, requestedPageIndex, total, await filtered.ToListAsync());
 
-        var targetPageIndex = pageIndex - 1;
+        var targetPageIndex = zeroBasedPageIndex - 1;
         while (true)
         {
             if (total > targetPageIndex * pageSize)
                 return await GetPage(targetPageIndex * pageSize, pageSize);
 
             targetPageIndex--;
-            if (targetPageIndex < 0) return new Pagination<T>(pageSize, 0, 0, []);
+            if (targetPageIndex < 0) return new Pagination<T>(pageSize, requestedPageIndex, total, []);
         }
     }
 }
