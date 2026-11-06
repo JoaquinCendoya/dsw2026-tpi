@@ -75,42 +75,85 @@ public class SpecialtyService : ISpecialtyService
 
     public async Task Delete(Guid id)
     {
-        var specialty = await _unitOfWork.Repository<Specialty>().GetByIdAsync(id)
+        var specialty = await _unitOfWork.Repository<Specialty>().GetByIdAsync(id, includeDeleted: true)
             ?? throw new EntityNotFoundException(nameof(Specialty));
 
-        // Borrado lógico en cascada: dar de baja a todos los médicos asignados y sus disponibilidades
-        var doctors = await _unitOfWork.Repository<Doctor>()
-            .FindAsync(d => d.SpecialtyId == id);
+        // Baja física en cascada: buscar todos los médicos asignados (incluso los dados de baja lógica)
+        var doctors = (await _unitOfWork.Repository<Doctor>()
+            .FindAsync(d => d.SpecialtyId == id, includeDeleted: true)).ToList();
 
-        foreach (var doctor in doctors)
+        var doctorIds = doctors.Select(d => d.Id).ToList();
+
+        if (doctorIds.Any())
         {
-            var rules = await _unitOfWork.Repository<AvailabilityRule>()
-                .FindAsync(r => r.DoctorId == doctor.Id);
+            var rules = (await _unitOfWork.Repository<AvailabilityRule>()
+                .FindAsync(r => doctorIds.Contains(r.DoctorId), includeDeleted: true)).ToList();
+            var ruleIds = rules.Select(r => r.Id).ToList();
+
+            var slots = (await _unitOfWork.Repository<AvailabilitySlot>()
+                .FindAsync(s => ruleIds.Contains(s.AvailabilityRuleId), includeDeleted: true)).ToList();
+            var slotIds = slots.Select(s => s.Id).ToList();
+
+            var appointments = (await _unitOfWork.Repository<Appointment>()
+                .FindAsync(a => slotIds.Contains(a.AvailabilitySlotId), includeDeleted: true)).ToList();
+
+            if (appointments.Any())
+            {
+                throw new ConflictException(
+                    "No se puede eliminar físicamente la especialidad porque contiene médicos con turnos registrados. Puede desactivarla desde el botón de estado.",
+                    "SPECIALTY_HAS_APPOINTMENTS"
+                );
+            }
+
+            foreach (var slot in slots)
+            {
+                _unitOfWork.Repository<AvailabilitySlot>().HardDelete(slot);
+            }
 
             foreach (var rule in rules)
             {
-                _unitOfWork.Repository<AvailabilityRule>().Delete(rule);
+                _unitOfWork.Repository<AvailabilityRule>().HardDelete(rule);
             }
 
-            _unitOfWork.Repository<Doctor>().Delete(doctor);
+            foreach (var doctor in doctors)
+            {
+                _unitOfWork.Repository<Doctor>().HardDelete(doctor);
+            }
         }
 
-        _unitOfWork.Repository<Specialty>().Delete(specialty);
+        _unitOfWork.Repository<Specialty>().HardDelete(specialty);
         await _unitOfWork.SaveChangesAsync();
     }
 
     public async Task<SpecialtyModel.Response> SetStatus(Guid id, bool isActive)
     {
-        if (!isActive)
-        {
-            await Delete(id);
-            var deactivated = await _unitOfWork.Repository<Specialty>().GetByIdAsync(id, includeDeleted: true)
-                ?? throw new EntityNotFoundException(nameof(Specialty));
-            return deactivated.ToResponse();
-        }
-
         var specialty = await _unitOfWork.Repository<Specialty>().GetByIdAsync(id, includeDeleted: true)
             ?? throw new EntityNotFoundException(nameof(Specialty));
+
+        if (!isActive)
+        {
+            // Baja lógica en cascada
+            var doctors = await _unitOfWork.Repository<Doctor>()
+                .FindAsync(d => d.SpecialtyId == id);
+
+            foreach (var doctor in doctors)
+            {
+                var rules = await _unitOfWork.Repository<AvailabilityRule>()
+                    .FindAsync(r => r.DoctorId == doctor.Id);
+
+                foreach (var rule in rules)
+                {
+                    _unitOfWork.Repository<AvailabilityRule>().Delete(rule);
+                }
+
+                _unitOfWork.Repository<Doctor>().Delete(doctor);
+            }
+
+            _unitOfWork.Repository<Specialty>().Delete(specialty);
+            await _unitOfWork.SaveChangesAsync();
+
+            return specialty.ToResponse();
+        }
 
         var name = specialty.Name.Trim();
         var existingActive = (await _unitOfWork.Repository<Specialty>()

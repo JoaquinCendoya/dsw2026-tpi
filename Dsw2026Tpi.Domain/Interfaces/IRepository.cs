@@ -12,6 +12,7 @@ public interface IRepository<T> where T : EntityBase
     Task AddAsync(T entity);
     void Update(T entity);
     void Delete(T entity);
+    void HardDelete(T entity);
 
     // Nueva firma obligatoria para reemplazar IPersistence
     Task<Pagination<T>> PaginateAsync<TKey>(
@@ -30,4 +31,5 @@ public interface IRepository<T> where T : EntityBase
         bool includeDeleted,
         params string[] includes);
     Task<IEnumerable<T>> FindAsync(Expression<Func<T, bool>> predicate, params string[] includes);
+    Task<IEnumerable<T>> FindAsync(Expression<Func<T, bool>> predicate, bool includeDeleted);
 }

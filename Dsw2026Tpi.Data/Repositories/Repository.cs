@@ -53,6 +53,15 @@ public class Repository<T> : IRepository<T> where T : EntityBase
         return await query.Where(predicate).ToListAsync();
     }
 
+    public async Task<IEnumerable<T>> FindAsync(Expression<Func<T, bool>> predicate, bool includeDeleted)
+    {
+        var query = includeDeleted
+            ? _dbSet.IgnoreQueryFilters().AsQueryable()
+            : _dbSet.Where(e => !e.Deleted);
+
+        return await query.Where(predicate).ToListAsync();
+    }
+
     public async Task AddAsync(T entity)
     {
         await _dbSet.AddAsync(entity);
@@ -67,6 +76,11 @@ public class Repository<T> : IRepository<T> where T : EntityBase
     {
         entity.Delete();
         _dbSet.Update(entity);
+    }
+
+    public void HardDelete(T entity)
+    {
+        _dbSet.Remove(entity);
     }
     public async Task<Pagination<T>> PaginateAsync<TKey>(
         int pageSize,
