@@ -1,4 +1,4 @@
-﻿using Dsw2026Tpi.Api.Controllers;
+using Dsw2026Tpi.Api.Controllers;
 using Dsw2026Tpi.Application.Interfaces;
 using Dsw2026Tpi.Application.Models;
 using Dsw2026Tpi.CrossCutting.Identity;
@@ -130,8 +130,6 @@ namespace Dsw2026Tpi.Tests
                 )
             };
 
-            // Instancia usando el constructor con los parámetros que requiere tu clase Pagination:
-            // (PageNumber, PageSize, TotalCount, Items) -> Verifica el orden exacto en tu definición de Pagination
             var expectedPagination = new Pagination<AppointmentModel.SearchResponse>(
                 1,
                 10,
@@ -139,7 +137,7 @@ namespace Dsw2026Tpi.Tests
                 list
             );
 
-            _serviceMock.GetByPatientDniAsync(Arg.Is<AppointmentModel.PatientDto>(p => p!.Dni == dni))
+            _serviceMock.GetByPatientDniAsync(Arg.Is<AppointmentModel.PatientDto>(p => p!.Dni == dni), 10, 1)
                 .Returns(Task.FromResult(expectedPagination));
 
             // Act

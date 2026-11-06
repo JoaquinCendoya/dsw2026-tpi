@@ -1,4 +1,4 @@
-﻿using Dsw2026Tpi.Application.Models;
+using Dsw2026Tpi.Application.Models;
 using Dsw2026Tpi.Application.Services;
 using Dsw2026Tpi.CrossCutting.Exceptions;
 using Dsw2026Tpi.CrossCutting.Resources;

@@ -1,4 +1,4 @@
-﻿using Dsw2026Tpi.Application.Interfaces;
+using Dsw2026Tpi.Application.Interfaces;
 using Dsw2026Tpi.Application.Models;
 using Dsw2026Tpi.CrossCutting.Identity;
 using Dsw2026Tpi.CrossCutting.Models;
@@ -63,7 +63,7 @@ public class DoctorController : AppController
     /// <param name="id">Id del médico.</param>
     /// <response code="200">Disponibilidad horaria por día de la semana.</response>
     [HttpGet("{id:guid}/availabilities")]
-    [Authorize(Policy = Policies.PatientPolicy)]
+    [Authorize(Roles = $"{Roles.Administrator},{Roles.Patient}")]
     [ProducesResponseType(typeof(IEnumerable<DoctorModel.AvailabilityResponse>), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status401Unauthorized)]
     [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status403Forbidden)]
@@ -84,6 +84,7 @@ public class DoctorController : AppController
     [Authorize(Policy = Policies.AdminPolicy)]
     [ProducesResponseType(typeof(DoctorModel.Response), StatusCodes.Status201Created)]
     [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status409Conflict)]
     [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status401Unauthorized)]
     [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status403Forbidden)]
     public async Task<IActionResult> Create([FromBody] DoctorModel.Request request)
@@ -105,6 +106,7 @@ public class DoctorController : AppController
     [ProducesResponseType(typeof(DoctorModel.Response), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status400BadRequest)]
     [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status404NotFound)]
+    [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status409Conflict)]
     [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status401Unauthorized)]
     [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status403Forbidden)]
     public async Task<IActionResult> Update([FromRoute] Guid id, [FromBody] DoctorModel.Request request)
@@ -132,7 +134,21 @@ public class DoctorController : AppController
     }
 
     /// <summary>
-    /// Consulta los slots persistidos futuros y libres de un médico para un rango de fechas.
+    /// Activa o desactiva un médico del sistema.
+    /// </summary>
+    [HttpPut("{id:guid}/status")]
+    [Authorize(Policy = Policies.AdminPolicy)]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status404NotFound)]
+    [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status409Conflict)]
+    public async Task<IActionResult> SetStatus([FromRoute] Guid id, [FromBody] DoctorModel.StatusRequest request)
+    {
+        var result = await _service.SetStatus(id, request.IsActive);
+        return Ok(result);
+    }
+
+    /// <summary>
+    /// Consulta los turnos libres de un médico para un rango de fechas.
     /// </summary>
     /// <param name="id">Id del médico.</param>
     /// <param name="startDate">Fecha inicial inclusiva del rango.</param>

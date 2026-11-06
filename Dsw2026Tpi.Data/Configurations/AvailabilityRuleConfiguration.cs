@@ -1,4 +1,4 @@
-﻿using Dsw2026Tpi.Domain.Entities;
+using Dsw2026Tpi.Domain.Entities;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 
@@ -23,9 +23,10 @@ namespace Dsw2026Tpi.Data.Configurations
                    .HasForeignKey(a => a.DoctorId)
                    .OnDelete(DeleteBehavior.Restrict);
 
-            // Constraint UNIQUE exigido en el ERD
+            // Constraint UNIQUE con filtro para borrado lógico (igual que en AvailabilitySlot)
             builder.HasIndex(a => new { a.DoctorId, a.Year, a.Month, a.DayOfWeek, a.StartTime, a.EndTime })
-                   .IsUnique();
+                   .IsUnique()
+                   .HasFilter("[Deleted] = 0");
 
             builder.Property(a => a.Deleted).HasDefaultValue(false);
         }

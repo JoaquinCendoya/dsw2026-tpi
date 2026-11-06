@@ -1,3 +1,4 @@
+using Dsw2026Tpi.Api.Binders;
 using Dsw2026Tpi.Api.Configurations;
 using Dsw2026Tpi.Api.Filters;
 using Dsw2026Tpi.Api.Middlewares;
@@ -38,6 +39,8 @@ public class Program
             builder.Services.AddAppDependencies();
             builder.Services.AddControllers(options =>
             {
+                options.ModelBinderProviders.Insert(0, new AppointmentStatusModelBinderProvider());
+
                 // Politica global: Todo endpoint requiere un usuario autenticado
                 var policy = new AuthorizationPolicyBuilder()
                                  .RequireAuthenticatedUser()
@@ -72,10 +75,10 @@ public class Program
                 app.UseSwaggerUI();
             }
 
+            app.UseMiddleware<ExceptionHandlingMiddleware>();
+            app.UseCors();
             app.UseAuthentication();
             app.UseAuthorization();
-            app.UseCors();
-            app.UseMiddleware<ExceptionHandlingMiddleware>();
             app.UseRateLimiter();
 
             app.MapControllers();

@@ -19,7 +19,9 @@ public record AppointmentModel
         Guid AppointmentsId,
         string AppointmentsStatus,
         PatientSummary Patient,
-        DoctorSummary Doctor
+        DoctorSummary Doctor,
+        DateOnly? Date = null,
+        TimeOnly? StartTime = null
     );
 
     public record PatientSummary(long Dni, string? FullName);

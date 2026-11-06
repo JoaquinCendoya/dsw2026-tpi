@@ -1,4 +1,4 @@
-﻿using Dsw2026Tpi.Application.Interfaces;
+using Dsw2026Tpi.Application.Interfaces;
 using Dsw2026Tpi.Application.Services;
 using Dsw2026Tpi.Application.Validators;
 using Dsw2026Tpi.Data.Repositories;
@@ -20,6 +20,7 @@ public static class DependencyInjectionConfigurationExtensions
         services.AddScoped<IHolidayService, HolidayService>();
         services.AddScoped<IAvailabilityService, AvailabilityService>();
         services.AddScoped<IAppointmentService, AppointmentService>();
+        services.AddScoped<IDashboardService, DashboardService>();
         services.AddValidatorsFromAssemblyContaining<AppointmentRequestValidator>();
         return services;
     }

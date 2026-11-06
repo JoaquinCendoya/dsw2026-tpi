@@ -1,4 +1,4 @@
-﻿namespace Dsw2026Tpi.Domain.Entities;
+namespace Dsw2026Tpi.Domain.Entities;
 
 public abstract class EntityBase(Guid? id = null)
 {
@@ -10,6 +10,12 @@ public abstract class EntityBase(Guid? id = null)
     public void Delete()
     {
         Deleted = true;
+        UpdatedAt = DateTime.UtcNow;
+    }
+
+    public void Restore()
+    {
+        Deleted = false;
         UpdatedAt = DateTime.UtcNow;
     }
 }

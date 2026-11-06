@@ -73,6 +73,11 @@ public class AvailabilityService : IAvailabilityService
                 _unitOfWork.Repository<AvailabilityRule>().Delete(rule);
         }
 
+        if (overwrite)
+        {
+            await _unitOfWork.SaveChangesAsync();
+        }
+
         foreach (var dayConfig in request.Days)
         {
             if (!SpanishDayOfWeek.TryParse(dayConfig.Day, out var dayOfWeek))

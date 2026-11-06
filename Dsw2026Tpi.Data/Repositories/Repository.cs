@@ -1,4 +1,4 @@
-﻿using Dsw2026Tpi.Domain.Entities;
+using Dsw2026Tpi.Domain.Entities;
 using Dsw2026Tpi.Domain.Interfaces;
 using Microsoft.EntityFrameworkCore;
 using System.Linq.Expressions;
@@ -18,6 +18,16 @@ public class Repository<T> : IRepository<T> where T : EntityBase
 
     public async Task<T?> GetByIdAsync(Guid id)
     {
+        return await GetByIdAsync(id, false);
+    }
+
+    public async Task<T?> GetByIdAsync(Guid id, bool includeDeleted)
+    {
+        if (includeDeleted)
+        {
+            return await _dbSet.IgnoreQueryFilters().FirstOrDefaultAsync(e => e.Id == id);
+        }
+
         return await _dbSet.FirstOrDefaultAsync(e => e.Id == id && !e.Deleted);
     }
 
@@ -48,6 +58,15 @@ public class Repository<T> : IRepository<T> where T : EntityBase
         return await query.Where(predicate).ToListAsync();
     }
 
+    public async Task<IEnumerable<T>> FindAsync(Expression<Func<T, bool>> predicate, bool includeDeleted)
+    {
+        var query = includeDeleted
+            ? _dbSet.IgnoreQueryFilters().AsQueryable()
+            : _dbSet.Where(e => !e.Deleted);
+
+        return await query.Where(predicate).ToListAsync();
+    }
+
     public async Task AddAsync(T entity)
     {
         await _dbSet.AddAsync(entity);
@@ -63,18 +82,38 @@ public class Repository<T> : IRepository<T> where T : EntityBase
         entity.Delete();
         _dbSet.Update(entity);
     }
-    public async Task<Pagination<T>> PaginateAsync<TKey>(
-    int pageSize,
-    int pageIndex,
-    Expression<Func<T, bool>> predicate,
-    Expression<Func<T, TKey>> sortOrder,
-    bool descending = false,
-    params string[] includes)
-    {
-        pageSize = Math.Abs(pageSize);
-        pageIndex = Math.Abs(pageIndex) == 0 ? 0 : Math.Abs(pageIndex) - 1;
 
-        var query = _dbSet.Where(e => !e.Deleted);
+    public void HardDelete(T entity)
+    {
+        _dbSet.Remove(entity);
+    }
+    public async Task<Pagination<T>> PaginateAsync<TKey>(
+        int pageSize,
+        int pageIndex,
+        Expression<Func<T, bool>> predicate,
+        Expression<Func<T, TKey>> sortOrder,
+        bool descending = false,
+        params string[] includes)
+    {
+        return await PaginateAsync(pageSize, pageIndex, predicate, sortOrder, descending, false, includes);
+    }
+
+    public async Task<Pagination<T>> PaginateAsync<TKey>(
+        int pageSize,
+        int pageIndex,
+        Expression<Func<T, bool>> predicate,
+        Expression<Func<T, TKey>> sortOrder,
+        bool descending,
+        bool includeDeleted,
+        params string[] includes)
+    {
+        pageSize = Math.Abs(pageSize) == 0 ? 10 : Math.Abs(pageSize);
+        var requestedPageIndex = pageIndex <= 0 ? 1 : Math.Abs(pageIndex);
+        var zeroBasedPageIndex = requestedPageIndex - 1;
+
+        var query = includeDeleted
+            ? _dbSet.IgnoreQueryFilters().AsQueryable()
+            : _dbSet.Where(e => !e.Deleted);
 
         foreach (var include in includes)
         {
@@ -88,23 +127,23 @@ public class Repository<T> : IRepository<T> where T : EntityBase
         async Task<Pagination<T>> GetPage(int skip, int take)
         {
             var data = await filtered.Skip(skip).Take(take).ToListAsync();
-            return new Pagination<T>(pageSize, pageIndex, total, data);
+            return new Pagination<T>(pageSize, requestedPageIndex, total, data);
         }
 
-        if (total > pageSize * pageIndex)
-            return await GetPage(pageIndex * pageSize, pageSize);
+        if (total > pageSize * zeroBasedPageIndex)
+            return await GetPage(zeroBasedPageIndex * pageSize, pageSize);
 
         if (total < pageSize)
-            return new Pagination<T>(pageSize, pageIndex, total, await filtered.ToListAsync());
+            return new Pagination<T>(pageSize, requestedPageIndex, total, await filtered.ToListAsync());
 
-        var targetPageIndex = pageIndex - 1;
+        var targetPageIndex = zeroBasedPageIndex - 1;
         while (true)
         {
             if (total > targetPageIndex * pageSize)
                 return await GetPage(targetPageIndex * pageSize, pageSize);
 
             targetPageIndex--;
-            if (targetPageIndex < 0) return new Pagination<T>(pageSize, 0, 0, []);
+            if (targetPageIndex < 0) return new Pagination<T>(pageSize, requestedPageIndex, total, []);
         }
     }
 }

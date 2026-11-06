@@ -7,9 +7,11 @@ public static class SpanishDayOfWeek
         ["LUNES"] = DayOfWeek.Monday,
         ["MARTES"] = DayOfWeek.Tuesday,
         ["MIERCOLES"] = DayOfWeek.Wednesday,
+        ["MIÉRCOLES"] = DayOfWeek.Wednesday,
         ["JUEVES"] = DayOfWeek.Thursday,
         ["VIERNES"] = DayOfWeek.Friday,
         ["SABADO"] = DayOfWeek.Saturday,
+        ["SÁBADO"] = DayOfWeek.Saturday,
         ["DOMINGO"] = DayOfWeek.Sunday,
     };
 

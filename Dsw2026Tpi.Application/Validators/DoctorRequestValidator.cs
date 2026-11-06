@@ -1,4 +1,4 @@
-﻿using Dsw2026Tpi.Application.Models;
+using Dsw2026Tpi.Application.Models;
 using Dsw2026Tpi.Domain.Entities;
 using Dsw2026Tpi.Domain.Interfaces;
 using FluentValidation;
@@ -12,6 +12,10 @@ public class DoctorRequestValidator : AbstractValidator<DoctorModel.Request>
         RuleFor(x => x.Name)
             .NotEmpty().WithMessage("El nombre es obligatorio.")
             .Length(3, 100).WithMessage("El nombre debe tener entre 3 y 100 caracteres.");
+
+        RuleFor(x => x.LicenseNumber)
+            .NotEmpty().WithMessage("La matrícula es obligatoria.")
+            .MaximumLength(50).WithMessage("La matrícula no puede superar los 50 caracteres.");
 
         RuleFor(x => x.SpecialtyId)
             .MustAsync(async (id, cancellation) =>

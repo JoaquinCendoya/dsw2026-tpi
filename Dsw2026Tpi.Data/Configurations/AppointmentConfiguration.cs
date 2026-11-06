@@ -1,4 +1,4 @@
-﻿using Dsw2026Tpi.Domain.Entities;
+using Dsw2026Tpi.Domain.Entities;
 using Dsw2026Tpi.Domain.Enums;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
@@ -39,7 +39,6 @@ namespace Dsw2026Tpi.Data.Configurations
                    .WithMany()
                    .HasForeignKey(a => a.PatientId)
                    .OnDelete(DeleteBehavior.Restrict);
-
         }
     }
 }

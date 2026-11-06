@@ -1,4 +1,4 @@
-﻿using Dsw2026Tpi.CrossCutting.Identity;
+using Dsw2026Tpi.CrossCutting.Identity;
 using Dsw2026Tpi.CrossCutting.Models;
 using Dsw2026Tpi.CrossCutting.Resources;
 using Dsw2026Tpi.Data.Identity;
@@ -87,6 +87,9 @@ public static class SecurityConfigurationExtensions
         {
             allowedOrigins =
             [
+                "http://localhost:5173",
+                "http://127.0.0.1:5173",
+                "http://localhost:3000",
                 "http://localhost",
                 "https://localhost"
             ];
