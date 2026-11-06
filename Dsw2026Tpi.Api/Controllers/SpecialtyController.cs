@@ -1,4 +1,4 @@
-﻿using Dsw2026Tpi.Application.Models;
+using Dsw2026Tpi.Application.Models;
 using Dsw2026Tpi.Application.Interfaces;
 using Dsw2026Tpi.CrossCutting.Identity;
 using Dsw2026Tpi.CrossCutting.Models;
@@ -43,6 +43,7 @@ public class SpecialtyController : ControllerBase
     [HttpPost]
     [ProducesResponseType(StatusCodes.Status201Created)]
     [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status409Conflict)]
     public async Task<IActionResult> Create([FromBody] SpecialtyModel.Request request)
     {
         var specialty = await _service.Create(request);
@@ -57,10 +58,12 @@ public class SpecialtyController : ControllerBase
     /// <response code="200">Especialidad actualizada exitosamente.</response>
     /// <response code="400">Los datos enviados no son válidos.</response>
     /// <response code="404">No existe una especialidad con el Id indicado.</response>
+    /// <response code="409">Ya existe otra especialidad con ese nombre.</response>
     [HttpPut("{id}")]
     [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status400BadRequest)]
     [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status404NotFound)]
+    [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status409Conflict)]
     public async Task<IActionResult> Update(Guid id, [FromBody] SpecialtyModel.Request request)
     {
         var result = await _service.Update(id, request);
@@ -73,9 +76,11 @@ public class SpecialtyController : ControllerBase
     /// <param name="id">Id de la especialidad a eliminar.</param>
     /// <response code="200">Especialidad eliminada exitosamente.</response>
     /// <response code="404">No existe una especialidad con el Id indicado.</response>
+    /// <response code="409">La especialidad está asignada a uno o más médicos.</response>
     [HttpDelete("{id}")]
     [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status404NotFound)]
+    [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status409Conflict)]
     public async Task<IActionResult> Delete(Guid id)
     {
         await _service.Delete(id);

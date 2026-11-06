@@ -1,4 +1,4 @@
-﻿using Dsw2026Tpi.Application.Models;
+using Dsw2026Tpi.Application.Models;
 using Dsw2026Tpi.Application.Interfaces;
 using Dsw2026Tpi.Application.Mappings;
 using Dsw2026Tpi.CrossCutting.Exceptions;
@@ -31,7 +31,17 @@ public class SpecialtyService : ISpecialtyService
 
     public async Task<SpecialtyModel.Response> Create(SpecialtyModel.Request request)
     {
-        var specialty = new Specialty(request.Name, request.Description);
+        var name = request.Name.Trim();
+        var existingWithName = (await _unitOfWork.Repository<Specialty>()
+            .FindAsync(s => s.Name.ToLower() == name.ToLower()))
+            .FirstOrDefault();
+
+        if (existingWithName is not null)
+        {
+            throw new ConflictException("Ya existe una especialidad con ese nombre.", "DUPLICATE_SPECIALTY_NAME");
+        }
+
+        var specialty = new Specialty(name, request.Description.Trim());
 
         await _unitOfWork.Repository<Specialty>().AddAsync(specialty);
         await _unitOfWork.SaveChangesAsync();
@@ -44,7 +54,17 @@ public class SpecialtyService : ISpecialtyService
         var specialty = await _unitOfWork.Repository<Specialty>().GetByIdAsync(id)
             ?? throw new EntityNotFoundException(nameof(Specialty));
 
-        specialty.UpdateDetails(request.Name, request.Description);
+        var name = request.Name.Trim();
+        var existingWithName = (await _unitOfWork.Repository<Specialty>()
+            .FindAsync(s => s.Id != id && s.Name.ToLower() == name.ToLower()))
+            .FirstOrDefault();
+
+        if (existingWithName is not null)
+        {
+            throw new ConflictException("Ya existe otra especialidad con ese nombre.", "DUPLICATE_SPECIALTY_NAME");
+        }
+
+        specialty.UpdateDetails(name, request.Description.Trim());
 
         _unitOfWork.Repository<Specialty>().Update(specialty);
         await _unitOfWork.SaveChangesAsync();
@@ -56,6 +76,15 @@ public class SpecialtyService : ISpecialtyService
     {
         var specialty = await _unitOfWork.Repository<Specialty>().GetByIdAsync(id)
             ?? throw new EntityNotFoundException(nameof(Specialty));
+
+        var hasDoctors = (await _unitOfWork.Repository<Doctor>()
+            .FindAsync(d => d.SpecialtyId == id))
+            .Any();
+
+        if (hasDoctors)
+        {
+            throw new ConflictException("No se puede eliminar la especialidad porque está asignada a uno o más médicos.", "SPECIALTY_IN_USE");
+        }
 
         _unitOfWork.Repository<Specialty>().Delete(specialty);
         await _unitOfWork.SaveChangesAsync();
