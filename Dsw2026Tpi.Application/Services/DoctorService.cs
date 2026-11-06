@@ -85,6 +85,14 @@ public class DoctorService : IDoctorService
         var doctor = await _unitOfWork.Repository<Doctor>().GetByIdAsync(id)
             ?? throw new EntityNotFoundException(nameof(Doctor));
 
+        var rules = await _unitOfWork.Repository<AvailabilityRule>()
+            .FindAsync(r => r.DoctorId == id);
+
+        foreach (var rule in rules)
+        {
+            _unitOfWork.Repository<AvailabilityRule>().Delete(rule);
+        }
+
         _unitOfWork.Repository<Doctor>().Delete(doctor);
         await _unitOfWork.SaveChangesAsync();
     }
