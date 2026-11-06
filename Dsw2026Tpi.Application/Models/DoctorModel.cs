@@ -15,4 +15,10 @@ public record DoctorModel
 
     public record SearchRequest(int PageSize, int PageIndex, string? Name = null, bool Descending = false, bool IncludeInactive = true);
 
+    public record AvailableSlotResponse(
+        Guid AvailabilitySlotId,
+        DateTime Date,
+        TimeSpan StartTime,
+        TimeSpan EndTime
+    );
 }

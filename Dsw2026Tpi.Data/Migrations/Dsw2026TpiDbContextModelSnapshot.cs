@@ -50,8 +50,8 @@ namespace Dsw2026Tpi.Data.Migrations
 
                     b.Property<string>("Reason")
                         .IsRequired()
-                        .HasMaxLength(200)
-                        .HasColumnType("nvarchar(200)");
+                        .HasMaxLength(300)
+                        .HasColumnType("nvarchar(300)");
 
                     b.Property<string>("Status")
                         .IsRequired()
@@ -65,7 +65,7 @@ namespace Dsw2026Tpi.Data.Migrations
 
                     b.HasIndex("AvailabilitySlotId")
                         .IsUnique()
-                        .HasFilter("[Status] = 'Booked' AND [Deleted] = 0");
+                        .HasFilter("[Status] = 'BOOKED' AND [Deleted] = 0");
 
                     b.HasIndex("PatientId");
 

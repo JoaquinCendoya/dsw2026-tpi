@@ -11,4 +11,6 @@ public interface IDoctorService
     Task<DoctorModel.Response> SetStatus(Guid id, bool isActive);
     Task Delete(Guid id);
     Task<IEnumerable<DoctorModel.AvailabilityResponse>> GetAvailabilities(Guid id);
+
+    Task<IEnumerable<DoctorModel.AvailableSlotResponse>> GetAvailableSlotsAsync(Guid id, DateTime startDate, DateTime endDate);
 }

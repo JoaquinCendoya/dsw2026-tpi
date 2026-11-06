@@ -1,4 +1,4 @@
-﻿using Dsw2026Tpi.CrossCutting.Exceptions;
+using Dsw2026Tpi.CrossCutting.Exceptions;
 using Dsw2026Tpi.CrossCutting.Resources;
 using Dsw2026Tpi.Domain.Enums;
 using System;
@@ -38,6 +38,10 @@ namespace Dsw2026Tpi.Domain.Entities
 
             Reason = reason;
             Status = AppointmentStatus.Booked;
+            if (slot.Status != SlotStatus.Booked)
+            {
+                slot.Book();
+            }
         }
 
         public void Cancel() => TransitionFromBooked(AppointmentStatus.Cancelled, () => CancelledAt = DateTime.UtcNow);
@@ -56,6 +60,11 @@ namespace Dsw2026Tpi.Domain.Entities
 
             Status = newStatus;
             onTransition();
+
+            if (newStatus == AppointmentStatus.Cancelled && AvailabilitySlot != null && AvailabilitySlot.Status != SlotStatus.Available)
+            {
+                AvailabilitySlot.Release();
+            }
         }
     }
 }

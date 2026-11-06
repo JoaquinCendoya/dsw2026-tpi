@@ -115,4 +115,19 @@ public class DoctorController : AppController
         var result = await _service.SetStatus(id, request.IsActive);
         return Ok(result);
     }
+
+    /// <summary>
+    /// Consulta los turnos libres de un médico para un rango de fechas.
+    /// </summary>
+    [HttpGet("{id:guid}/available-slots")]
+    [Authorize(Policy = Policies.PatientPolicy)]
+    [ProducesResponseType(typeof(IEnumerable<DoctorModel.AvailableSlotResponse>), StatusCodes.Status200OK)]
+    public async Task<IActionResult> GetAvailableSlots(
+        [FromRoute] Guid id,
+        [FromQuery] DateTime startDate,
+        [FromQuery] DateTime endDate)
+    {
+        var result = await _service.GetAvailableSlotsAsync(id, startDate, endDate);
+        return Ok(result);
+    }
 }

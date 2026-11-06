@@ -41,6 +41,11 @@ public class Repository<T> : IRepository<T> where T : EntityBase
         return await _dbSet.Where(e => !e.Deleted).Where(predicate).ToListAsync();
     }
 
+    public async Task<int> CountAsync(Expression<Func<T, bool>> predicate, CancellationToken cancellationToken = default)
+    {
+        return await _dbSet.Where(e => !e.Deleted).CountAsync(predicate, cancellationToken);
+    }
+
     public async Task<IEnumerable<T>> FindAsync(Expression<Func<T, bool>> predicate, params string[] includes)
     {
         var query = _dbSet.Where(e => !e.Deleted).AsQueryable();
