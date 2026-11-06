@@ -59,6 +59,7 @@ public class DoctorController : AppController
     [Authorize(Policy = Policies.AdminPolicy)]
     [ProducesResponseType(typeof(DoctorModel.Response), StatusCodes.Status201Created)]
     [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status409Conflict)]
     public async Task<IActionResult> Create([FromBody] DoctorModel.Request request)
     {
         var result = await _service.Create(request);
@@ -78,6 +79,7 @@ public class DoctorController : AppController
     [ProducesResponseType(typeof(DoctorModel.Response), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status400BadRequest)]
     [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status404NotFound)]
+    [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status409Conflict)]
     public async Task<IActionResult> Update([FromRoute] Guid id, [FromBody] DoctorModel.Request request)
     {
         var result = await _service.Update(id, request);

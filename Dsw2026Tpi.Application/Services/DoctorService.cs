@@ -33,10 +33,20 @@ public class DoctorService : IDoctorService
     }
     public async Task<DoctorModel.Response> Create(DoctorModel.Request request)
     {
+        var license = request.LicenseNumber.Trim();
+        var existingWithLicense = (await _unitOfWork.Repository<Doctor>()
+            .FindAsync(d => d.LicenseNumber.ToLower() == license.ToLower()))
+            .FirstOrDefault();
+
+        if (existingWithLicense is not null)
+        {
+            throw new ConflictException("Ya existe un médico registrado con esa matrícula.", "DUPLICATE_LICENSE_NUMBER");
+        }
+
         var specialty = await _unitOfWork.Repository<Specialty>().GetByIdAsync(request.SpecialtyId)
             ?? throw new EntityNotFoundException(nameof(Specialty));
 
-        var doctor = new Doctor(request.Name, request.LicenseNumber, specialty);
+        var doctor = new Doctor(request.Name, license, specialty);
 
         await _unitOfWork.Repository<Doctor>().AddAsync(doctor);
         await _unitOfWork.SaveChangesAsync();
@@ -49,10 +59,20 @@ public class DoctorService : IDoctorService
         var doctor = await _unitOfWork.Repository<Doctor>().GetByIdAsync(id)
             ?? throw new EntityNotFoundException(nameof(Doctor));
 
+        var license = request.LicenseNumber.Trim();
+        var existingWithLicense = (await _unitOfWork.Repository<Doctor>()
+            .FindAsync(d => d.Id != id && d.LicenseNumber.ToLower() == license.ToLower()))
+            .FirstOrDefault();
+
+        if (existingWithLicense is not null)
+        {
+            throw new ConflictException("Ya existe otro médico registrado con esa matrícula.", "DUPLICATE_LICENSE_NUMBER");
+        }
+
         var specialty = await _unitOfWork.Repository<Specialty>().GetByIdAsync(request.SpecialtyId)
             ?? throw new EntityNotFoundException(nameof(Specialty));
 
-        doctor.UpdateProfile(request.Name, request.LicenseNumber, specialty);
+        doctor.UpdateProfile(request.Name, license, specialty);
 
         _unitOfWork.Repository<Doctor>().Update(doctor);
         await _unitOfWork.SaveChangesAsync();
