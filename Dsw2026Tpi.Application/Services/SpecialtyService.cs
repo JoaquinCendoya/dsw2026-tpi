@@ -23,7 +23,8 @@ public class SpecialtyService : ISpecialtyService
             request.PageIndex,
             s => string.IsNullOrWhiteSpace(request.Name) || s.Name.Contains(request.Name),
             s => s.Name,
-            request.Descending
+            request.Descending,
+            request.IncludeInactive
         );
 
         return specialties.Map(s => s.ToResponse());
@@ -96,5 +97,35 @@ public class SpecialtyService : ISpecialtyService
 
         _unitOfWork.Repository<Specialty>().Delete(specialty);
         await _unitOfWork.SaveChangesAsync();
+    }
+
+    public async Task<SpecialtyModel.Response> SetStatus(Guid id, bool isActive)
+    {
+        if (!isActive)
+        {
+            await Delete(id);
+            var deactivated = await _unitOfWork.Repository<Specialty>().GetByIdAsync(id, includeDeleted: true)
+                ?? throw new EntityNotFoundException(nameof(Specialty));
+            return deactivated.ToResponse();
+        }
+
+        var specialty = await _unitOfWork.Repository<Specialty>().GetByIdAsync(id, includeDeleted: true)
+            ?? throw new EntityNotFoundException(nameof(Specialty));
+
+        var name = specialty.Name.Trim();
+        var existingActive = (await _unitOfWork.Repository<Specialty>()
+            .FindAsync(s => s.Id != id && s.Name.ToLower() == name.ToLower()))
+            .FirstOrDefault();
+
+        if (existingActive != null)
+        {
+            throw new ConflictException("Ya existe una especialidad activa con ese nombre.", "DUPLICATE_SPECIALTY_NAME");
+        }
+
+        specialty.Restore();
+        _unitOfWork.Repository<Specialty>().Update(specialty);
+        await _unitOfWork.SaveChangesAsync();
+
+        return specialty.ToResponse();
     }
 }

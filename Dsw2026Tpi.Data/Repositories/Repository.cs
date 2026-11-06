@@ -18,6 +18,16 @@ public class Repository<T> : IRepository<T> where T : EntityBase
 
     public async Task<T?> GetByIdAsync(Guid id)
     {
+        return await GetByIdAsync(id, false);
+    }
+
+    public async Task<T?> GetByIdAsync(Guid id, bool includeDeleted)
+    {
+        if (includeDeleted)
+        {
+            return await _dbSet.IgnoreQueryFilters().FirstOrDefaultAsync(e => e.Id == id);
+        }
+
         return await _dbSet.FirstOrDefaultAsync(e => e.Id == id && !e.Deleted);
     }
 
@@ -59,18 +69,32 @@ public class Repository<T> : IRepository<T> where T : EntityBase
         _dbSet.Update(entity);
     }
     public async Task<Pagination<T>> PaginateAsync<TKey>(
-    int pageSize,
-    int pageIndex,
-    Expression<Func<T, bool>> predicate,
-    Expression<Func<T, TKey>> sortOrder,
-    bool descending = false,
-    params string[] includes)
+        int pageSize,
+        int pageIndex,
+        Expression<Func<T, bool>> predicate,
+        Expression<Func<T, TKey>> sortOrder,
+        bool descending = false,
+        params string[] includes)
+    {
+        return await PaginateAsync(pageSize, pageIndex, predicate, sortOrder, descending, false, includes);
+    }
+
+    public async Task<Pagination<T>> PaginateAsync<TKey>(
+        int pageSize,
+        int pageIndex,
+        Expression<Func<T, bool>> predicate,
+        Expression<Func<T, TKey>> sortOrder,
+        bool descending,
+        bool includeDeleted,
+        params string[] includes)
     {
         pageSize = Math.Abs(pageSize) == 0 ? 10 : Math.Abs(pageSize);
         var requestedPageIndex = pageIndex <= 0 ? 1 : Math.Abs(pageIndex);
         var zeroBasedPageIndex = requestedPageIndex - 1;
 
-        var query = _dbSet.Where(e => !e.Deleted);
+        var query = includeDeleted
+            ? _dbSet.IgnoreQueryFilters().AsQueryable()
+            : _dbSet.Where(e => !e.Deleted);
 
         foreach (var include in includes)
         {

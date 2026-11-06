@@ -26,6 +26,7 @@ public class DoctorService : IDoctorService
             d => string.IsNullOrWhiteSpace(request.Name) || d.Name.Contains(request.Name),
             d => d.Name,
             request.Descending,
+            request.IncludeInactive,
             nameof(Doctor.Specialty)
         );
 
@@ -95,6 +96,36 @@ public class DoctorService : IDoctorService
 
         _unitOfWork.Repository<Doctor>().Delete(doctor);
         await _unitOfWork.SaveChangesAsync();
+    }
+
+    public async Task<DoctorModel.Response> SetStatus(Guid id, bool isActive)
+    {
+        if (!isActive)
+        {
+            await Delete(id);
+            var deactivated = await _unitOfWork.Repository<Doctor>().GetByIdAsync(id, includeDeleted: true)
+                ?? throw new EntityNotFoundException(nameof(Doctor));
+            return deactivated.ToResponse();
+        }
+
+        var doctor = await _unitOfWork.Repository<Doctor>().GetByIdAsync(id, includeDeleted: true)
+            ?? throw new EntityNotFoundException(nameof(Doctor));
+
+        var license = doctor.LicenseNumber.Trim();
+        var existingActive = (await _unitOfWork.Repository<Doctor>()
+            .FindAsync(d => d.Id != id && d.LicenseNumber.ToLower() == license.ToLower()))
+            .FirstOrDefault();
+
+        if (existingActive != null)
+        {
+            throw new ConflictException("Ya existe otro médico activo con esa matrícula.", "DUPLICATE_LICENSE_NUMBER");
+        }
+
+        doctor.Restore();
+        _unitOfWork.Repository<Doctor>().Update(doctor);
+        await _unitOfWork.SaveChangesAsync();
+
+        return doctor.ToResponse();
     }
 
     public async Task<IEnumerable<DoctorModel.AvailabilityResponse>> GetAvailabilities(Guid id)

@@ -86,4 +86,17 @@ public class SpecialtyController : ControllerBase
         await _service.Delete(id);
         return Ok("ok");
     }
+
+    /// <summary>
+    /// Activa o desactiva una especialidad médica.
+    /// </summary>
+    [HttpPut("{id}/status")]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status404NotFound)]
+    [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status409Conflict)]
+    public async Task<IActionResult> SetStatus(Guid id, [FromBody] SpecialtyModel.StatusRequest request)
+    {
+        var result = await _service.SetStatus(id, request.IsActive);
+        return Ok(result);
+    }
 }

@@ -101,4 +101,18 @@ public class DoctorController : AppController
         await _service.Delete(id);
         return Ok("ok");
     }
+
+    /// <summary>
+    /// Activa o desactiva un médico del sistema.
+    /// </summary>
+    [HttpPut("{id:guid}/status")]
+    [Authorize(Policy = Policies.AdminPolicy)]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status404NotFound)]
+    [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status409Conflict)]
+    public async Task<IActionResult> SetStatus([FromRoute] Guid id, [FromBody] DoctorModel.StatusRequest request)
+    {
+        var result = await _service.SetStatus(id, request.IsActive);
+        return Ok(result);
+    }
 }
