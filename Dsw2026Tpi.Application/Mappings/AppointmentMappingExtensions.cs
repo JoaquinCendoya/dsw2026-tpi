@@ -35,7 +35,7 @@ public static class AppointmentMappingExtensions
             statusStr,
             new AppointmentModel.PatientSummary(
                 dniValue,
-                !string.IsNullOrWhiteSpace(patient.FullName) ? patient.FullName : "Sin nombre"
+                patient.FullName
             ),
             new AppointmentModel.DoctorSummary(
                 doctor.Id,
