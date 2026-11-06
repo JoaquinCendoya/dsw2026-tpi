@@ -120,9 +120,10 @@ public class AppointmentService : IAppointmentService
         var appointments = await _unitOfWork.Repository<Appointment>().PaginateAsync(
             pageSize,
             pageIndex,
-            a => a.PatientId == patient.Id && a.Status == AppointmentStatus.Booked, // Filtrar solo activos según RN
-            a => a.AvailabilitySlot.SlotDate,
+            a => !a.Deleted && a.PatientId == patient.Id && a.Status == AppointmentStatus.Booked, // Filtrar solo activos según RN
+            a => a.AvailabilitySlot != null ? a.AvailabilitySlot.SlotDate : DateOnly.MinValue,
             false, // Orden cronológico ascendente (los más próximos primero)
+            includeDeleted: true,
             "AvailabilitySlot.AvailabilityRule.Doctor.Specialty", "Patient");
 
         return appointments.Map(a => a.ToSearchResponse());
@@ -131,8 +132,14 @@ public class AppointmentService : IAppointmentService
     public async Task<Pagination<AppointmentModel.SearchResponse>> GetByDateAsync(AppointmentModel.DailyRequest request)
     {
         var appointments = await _unitOfWork.Repository<Appointment>()
-            .PaginateAsync(request.PageSize, request.PageIndex, a => a.AvailabilitySlot.SlotDate == request.Date, a => a.AvailabilitySlot.StartTime,
-                request.Descending, "AvailabilitySlot.AvailabilityRule.Doctor.Specialty", "Patient");
+            .PaginateAsync(
+                request.PageSize,
+                request.PageIndex,
+                a => !a.Deleted && a.AvailabilitySlot != null && a.AvailabilitySlot.SlotDate == request.Date,
+                a => a.AvailabilitySlot != null ? a.AvailabilitySlot.StartTime : TimeOnly.MinValue,
+                request.Descending,
+                includeDeleted: true,
+                "AvailabilitySlot.AvailabilityRule.Doctor.Specialty", "Patient");
 
         return appointments.Map(a => a.ToSearchResponse());
     }
@@ -147,15 +154,17 @@ public class AppointmentService : IAppointmentService
         var appointments = await _unitOfWork.Repository<Appointment>().PaginateAsync(
             request.PageSize,
             request.PageIndex,
-            a => (request.SpecialtyId == null || a.AvailabilitySlot.AvailabilityRule.Doctor.SpecialtyId == request.SpecialtyId) &&
-                  (request.DoctorId == null || a.AvailabilitySlot.AvailabilityRule.DoctorId == request.DoctorId) &&
-                  (dniValue == null || a.Patient.Dni == dniValue) &&
+            a => !a.Deleted &&
+                  (request.SpecialtyId == null || (a.AvailabilitySlot != null && a.AvailabilitySlot.AvailabilityRule != null && a.AvailabilitySlot.AvailabilityRule.Doctor != null && a.AvailabilitySlot.AvailabilityRule.Doctor.SpecialtyId == request.SpecialtyId)) &&
+                  (request.DoctorId == null || (a.AvailabilitySlot != null && a.AvailabilitySlot.AvailabilityRule != null && a.AvailabilitySlot.AvailabilityRule.DoctorId == request.DoctorId)) &&
+                  (dniValue == null || (a.Patient != null && a.Patient.Dni == dniValue)) &&
                   (statusFilter == null || a.Status == statusFilter.Value) &&
-                  (request.Date == null || a.AvailabilitySlot.SlotDate == request.Date.Value) &&
-                  (request.StartDate == null || a.AvailabilitySlot.SlotDate >= request.StartDate.Value) &&
-                  (request.EndDate == null || a.AvailabilitySlot.SlotDate <= request.EndDate.Value),
-                  a => a.AvailabilitySlot.SlotDate,
+                  (request.Date == null || (a.AvailabilitySlot != null && a.AvailabilitySlot.SlotDate == request.Date.Value)) &&
+                  (request.StartDate == null || (a.AvailabilitySlot != null && a.AvailabilitySlot.SlotDate >= request.StartDate.Value)) &&
+                  (request.EndDate == null || (a.AvailabilitySlot != null && a.AvailabilitySlot.SlotDate <= request.EndDate.Value)),
+            a => a.AvailabilitySlot != null ? a.AvailabilitySlot.SlotDate : DateOnly.MinValue,
             request.Descending,
+            includeDeleted: true,
             "AvailabilitySlot.AvailabilityRule.Doctor.Specialty", "Patient");
 
         return appointments.Map(a => a.ToSearchResponse());
