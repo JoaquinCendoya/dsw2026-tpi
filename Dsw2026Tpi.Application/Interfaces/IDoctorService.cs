@@ -6,6 +6,7 @@ namespace Dsw2026Tpi.Application.Interfaces;
 public interface IDoctorService
 {
     Task<Pagination<DoctorModel.Response>> GetAll(DoctorModel.SearchRequest request);
+    Task<IEnumerable<DoctorModel.OptionResponse>> GetOptions(Guid specialtyId);
     Task<DoctorModel.Response> Create(DoctorModel.Request request);
     Task<DoctorModel.Response> Update(Guid id, DoctorModel.Request request);
     Task<DoctorModel.Response> SetStatus(Guid id, bool isActive);
