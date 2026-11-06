@@ -188,7 +188,6 @@ public class AppointmentServiceTests
 
         var rule = new AvailabilityRule(doctor, DateTime.UtcNow.Month, DateTime.UtcNow.Year, DayOfWeek.Monday, new TimeOnly(8, 0), new TimeOnly(18, 0), Guid.NewGuid());
         var slot = new AvailabilitySlot(rule, DateOnly.FromDateTime(DateTime.UtcNow.AddDays(1)), new TimeOnly(10, 0), new TimeOnly(11, 0), slotId);
-        slot.Book();
 
         var patient = new Patient(Guid.NewGuid(), "12345678", "Juan Perez", "555-1234", Guid.NewGuid());
         var appointment = new Appointment(slot, patient, "Motivo de consulta", appointmentId);
@@ -199,7 +198,7 @@ public class AppointmentServiceTests
 
         appointmentRepo.GetByIdAsync(appointmentId).Returns(appointment);
         slotRepo.GetByIdAsync(slotId).Returns(slot);
-        patientRepo.GetByIdAsync(appointment.PatientId).Returns(patient);
+        patientRepo.GetByIdAsync(patient.Id).Returns(patient);
 
         _unitOfWorkSubstitute.Repository<Appointment>().Returns(appointmentRepo);
         _unitOfWorkSubstitute.Repository<AvailabilitySlot>().Returns(slotRepo);
@@ -235,7 +234,7 @@ public class AppointmentServiceTests
 
         appointmentRepo.GetByIdAsync(appointmentId).Returns(appointment);
         slotRepo.GetByIdAsync(appointment.AvailabilitySlotId).Returns(slot);
-        patientRepo.GetByIdAsync(appointment.PatientId).Returns(patient);
+        patientRepo.GetByIdAsync(patient.Id).Returns(patient);
 
         _unitOfWorkSubstitute.Repository<Appointment>().Returns(appointmentRepo);
         _unitOfWorkSubstitute.Repository<AvailabilitySlot>().Returns(slotRepo);

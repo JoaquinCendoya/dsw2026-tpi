@@ -9,6 +9,7 @@ public static class SwaggerConfigurationExtensions
     {
         services.AddSwaggerGen(o =>
         {
+            o.DescribeAllParametersInCamelCase();
             const string schemeId = "Bearer";
             o.SwaggerDoc("v1", new OpenApiInfo
             {

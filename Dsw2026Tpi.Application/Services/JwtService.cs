@@ -1,5 +1,6 @@
 ﻿using Microsoft.Extensions.Configuration;
 using Microsoft.IdentityModel.Tokens;
+using Dsw2026Tpi.CrossCutting.Identity;
 using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
 using System.Text;
@@ -14,7 +15,7 @@ public class JwtService
         _config = config;
     }
 
-    public string GenerateToken(string username, string? role)
+    public string GenerateToken(string username, string? role, string? patientDni = null)
     {
         if (_config == null) throw new ArgumentNullException();
         var jwtConfig = _config.GetSection("Jwt");
@@ -25,12 +26,22 @@ public class JwtService
         var creds = new SigningCredentials(key, SecurityAlgorithms.HmacSha256);
         var expiresIn = int.Parse(jwtConfig["ExpiresInMinutes"] ?? "60");
 
-        var claims = new[]
+        var claims = new List<Claim>
         {
             new Claim(JwtRegisteredClaimNames.Sub, username),
             new Claim(ClaimTypes.Name, username),
             new Claim(ClaimTypes.Role, role ?? string.Empty)
         };
+
+        if (role == Roles.Patient)
+        {
+            if (string.IsNullOrWhiteSpace(patientDni))
+            {
+                throw new ArgumentException("El DNI es obligatorio para generar un token de paciente.", nameof(patientDni));
+            }
+
+            claims.Add(new Claim(IdentityClaims.PatientDni, patientDni));
+        }
 
         var token = new JwtSecurityToken(
             issuer: issuer,

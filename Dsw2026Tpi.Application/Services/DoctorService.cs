@@ -23,7 +23,8 @@ public class DoctorService : IDoctorService
         var doctors = await _unitOfWork.Repository<Doctor>().PaginateAsync(
             request.PageSize,
             request.PageIndex,
-            d => string.IsNullOrWhiteSpace(request.Name) || d.Name.Contains(request.Name),
+            d => (string.IsNullOrWhiteSpace(request.Name) || d.Name.Contains(request.Name))
+                && (!request.SpecialtyId.HasValue || d.SpecialtyId == request.SpecialtyId.Value),
             d => d.Name,
             request.Descending,
             request.IncludeInactive,
@@ -32,6 +33,17 @@ public class DoctorService : IDoctorService
 
         return doctors.Map(d => d.ToResponse());
     }
+
+    public async Task<IEnumerable<DoctorModel.OptionResponse>> GetOptions(Guid specialtyId)
+    {
+        var doctors = await _unitOfWork.Repository<Doctor>().FindAsync(
+            doctor => doctor.SpecialtyId == specialtyId);
+
+        return doctors
+            .OrderBy(doctor => doctor.Name)
+            .Select(doctor => new DoctorModel.OptionResponse(doctor.Id, doctor.Name));
+    }
+
     public async Task<DoctorModel.Response> Create(DoctorModel.Request request)
     {
         var license = request.LicenseNumber.Trim();
@@ -179,17 +191,26 @@ public class DoctorService : IDoctorService
         if (startDate > endDate)
             throw new BusinessRuleException("El rango de fechas es inválido.", "INVALID_DATE_RANGE");
 
+        _ = await _unitOfWork.Repository<Doctor>().GetByIdAsync(id)
+            ?? throw new EntityNotFoundException(nameof(Doctor));
+
         var startDateOnly = DateOnly.FromDateTime(startDate);
         var endDateOnly = DateOnly.FromDateTime(endDate);
+        var now = DateTime.Now;
+        var today = DateOnly.FromDateTime(now);
+        var currentTime = TimeOnly.FromDateTime(now);
+        if (startDateOnly < today)
+            startDateOnly = today;
 
         var slots = await _unitOfWork.Repository<AvailabilitySlot>()
             .FindAsync(s =>
                 s.AvailabilityRule.DoctorId == id &&
                 s.SlotDate >= startDateOnly &&
                 s.SlotDate <= endDateOnly &&
+                (s.SlotDate > today || s.StartTime > currentTime) &&
                 s.Status == SlotStatus.Available &&
-                !s.Deleted, 
-                "AvailabilityRule" 
+                !s.Deleted,
+                "AvailabilityRule"
             );
 
         return slots
