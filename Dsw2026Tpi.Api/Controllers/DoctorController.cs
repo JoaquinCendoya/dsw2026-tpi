@@ -1,4 +1,4 @@
-﻿using Dsw2026Tpi.Application.Interfaces;
+using Dsw2026Tpi.Application.Interfaces;
 using Dsw2026Tpi.Application.Models;
 using Dsw2026Tpi.CrossCutting.Identity;
 using Dsw2026Tpi.CrossCutting.Models;
@@ -40,7 +40,7 @@ public class DoctorController : AppController
     /// <param name="id">Id del médico.</param>
     /// <response code="200">Disponibilidad horaria por día de la semana.</response>
     [HttpGet("{id:guid}/availabilities")]
-    [Authorize(Policy = Policies.PatientPolicy)]
+    [Authorize(Roles = $"{Roles.Administrator},{Roles.Patient}")]
     [ProducesResponseType(typeof(IEnumerable<DoctorModel.AvailabilityResponse>), StatusCodes.Status200OK)]
     public async Task<IActionResult> GetAvailabilities([FromRoute] Guid id)
     {
