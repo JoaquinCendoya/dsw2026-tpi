@@ -1,10 +1,11 @@
-﻿using Dsw2026Tpi.Data;
+using Dsw2026Tpi.Data;
 using Dsw2026Tpi.Data.Extensions;
 using Dsw2026Tpi.Data.Identity;
 using Dsw2026Tpi.Data.Repositories;
 using Dsw2026Tpi.Domain.Interfaces;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Diagnostics;
 
 namespace Dsw2026Tpi.Api.Configurations;
 
@@ -20,6 +21,7 @@ public static class PersistenceConfigurationExtensions
         services.AddDbContext<Dsw2026TpiDbContext>(options =>
         {
             options.UseSqlServer(connectionString);
+            options.ConfigureWarnings(w => w.Ignore(RelationalEventId.PendingModelChangesWarning));
         });
 
         services.AddDbContext<AuthenticationDbContext>(options =>
