@@ -1,4 +1,4 @@
-﻿using Dsw2026Tpi.Application.Common;
+using Dsw2026Tpi.Application.Common;
 using Dsw2026Tpi.Application.Interfaces;
 using Dsw2026Tpi.Application.Mappings;
 using Dsw2026Tpi.Application.Models;
@@ -74,8 +74,9 @@ public class DoctorService : IDoctorService
         var doctor = await _unitOfWork.Repository<Doctor>().GetByIdAsync(id)
             ?? throw new EntityNotFoundException(nameof(Doctor));
 
+        var today = DateTime.Today;
         var rules = await _unitOfWork.Repository<AvailabilityRule>().FindAsync(
-        r => r.DoctorId == id);
+            r => r.DoctorId == id && r.Month == today.Month && r.Year == today.Year);
 
         return rules.Select(r => new DoctorModel.AvailabilityResponse(
             r.Id,
