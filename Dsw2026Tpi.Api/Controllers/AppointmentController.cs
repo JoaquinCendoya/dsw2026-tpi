@@ -125,4 +125,17 @@ public class AppointmentController : ControllerBase
         var response = await _service.SearchAsync(request);
         return Ok(response);
     }
+
+    /// <summary>
+    /// Registra la asistencia o ausencia a un turno médico (uso administrativo).
+    /// </summary>
+    [HttpPut("{id:guid}/attendance")]
+    [Authorize(Policy = Policies.AdminPolicy)]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status404NotFound)]
+    public async Task<IActionResult> MarkAttendanceAsync([FromRoute] Guid id, [FromBody] AppointmentModel.AttendanceRequest request)
+    {
+        await _service.MarkAttendanceAsync(id, request.Attended);
+        return Ok("ok");
+    }
 }

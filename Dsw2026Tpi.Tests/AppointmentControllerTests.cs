@@ -1,4 +1,4 @@
-﻿using Dsw2026Tpi.Api.Controllers;
+using Dsw2026Tpi.Api.Controllers;
 using Dsw2026Tpi.Application.Interfaces;
 using Dsw2026Tpi.Application.Models;
 using Dsw2026Tpi.Domain.Entities;
@@ -58,12 +58,20 @@ namespace Dsw2026Tpi.Tests
         {
             // Arrange
             var id = Guid.NewGuid();
+            var user = new System.Security.Claims.ClaimsPrincipal(new System.Security.Claims.ClaimsIdentity(new[]
+            {
+                new System.Security.Claims.Claim(System.Security.Claims.ClaimTypes.NameIdentifier, "42797948")
+            }));
+            _controller.ControllerContext = new ControllerContext
+            {
+                HttpContext = new DefaultHttpContext { User = user }
+            };
 
             // Act
             var result = await _controller.CancelAsync(id);
 
             // Assert
-            await _serviceMock.Received(1).CancelAsync(id,42797948L);
+            await _serviceMock.Received(1).CancelAsync(id, 42797948L);
             result.Should().BeOfType<OkObjectResult>();
         }
 
@@ -72,6 +80,15 @@ namespace Dsw2026Tpi.Tests
         {
             // Arrange
             long dni = 30123456;
+            var user = new System.Security.Claims.ClaimsPrincipal(new System.Security.Claims.ClaimsIdentity(new[]
+            {
+                new System.Security.Claims.Claim(System.Security.Claims.ClaimTypes.NameIdentifier, dni.ToString())
+            }));
+            _controller.ControllerContext = new ControllerContext
+            {
+                HttpContext = new DefaultHttpContext { User = user }
+            };
+
             var list = new List<AppointmentModel.SearchResponse>
             {
                 new(
@@ -86,8 +103,6 @@ namespace Dsw2026Tpi.Tests
                 )
             };
 
-            // Instancia usando el constructor con los parámetros que requiere tu clase Pagination:
-            // (PageNumber, PageSize, TotalCount, Items) -> Verifica el orden exacto en tu definición de Pagination
             var expectedPagination = new Pagination<AppointmentModel.SearchResponse>(
                 1,
                 10,
@@ -95,11 +110,11 @@ namespace Dsw2026Tpi.Tests
                 list
             );
 
-            _serviceMock.GetByPatientDniAsync(Arg.Is<AppointmentModel.PatientDto>(p => p!.Dni == dni))
+            _serviceMock.GetByPatientDniAsync(Arg.Is<AppointmentModel.PatientDto>(p => p!.Dni == dni), 10, 1)
                 .Returns(Task.FromResult(expectedPagination));
 
             // Act
-            var result = await _controller.GetByPatientAsync(Convert.ToInt16(dni));
+            var result = await _controller.GetByPatientAsync(10, 1);
 
             // Assert
             var ok = result.Should().BeOfType<OkObjectResult>().Subject;
@@ -196,6 +211,21 @@ namespace Dsw2026Tpi.Tests
             await _serviceMock.Received(1).SearchAsync(
                 Arg.Is<AppointmentModel.SearchRequest>(r => r == request)
             );
+        }
+
+        [Fact]
+        public async Task MarkAttendanceAsync_RetornaOk_CuandoServiceEjecutaCorrectamente()
+        {
+            // Arrange
+            var id = Guid.NewGuid();
+            var request = new AppointmentModel.AttendanceRequest(Attended: true);
+
+            // Act
+            var result = await _controller.MarkAttendanceAsync(id, request);
+
+            // Assert
+            await _serviceMock.Received(1).MarkAttendanceAsync(id, true);
+            result.Should().BeOfType<OkObjectResult>();
         }
     }
 }

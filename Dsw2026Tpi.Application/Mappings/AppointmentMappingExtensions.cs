@@ -26,9 +26,13 @@ public static class AppointmentMappingExtensions
             dniValue = parsedDni;
         }
 
+        var slotDate = entity.AvailabilitySlot?.SlotDate;
+        var startTime = entity.AvailabilitySlot?.StartTime;
+        var statusStr = StatusLiterals.TryGetValue(entity.Status, out var lit) ? lit : entity.Status.ToString().ToUpperInvariant();
+
         return new AppointmentModel.SearchResponse(
             entity.Id,
-            entity.Status.ToString(), // O el literal de estado correspondiente
+            statusStr,
             new AppointmentModel.PatientSummary(
                 dniValue,
                 !string.IsNullOrWhiteSpace(patient.FullName) ? patient.FullName : "Sin nombre"
@@ -40,7 +44,9 @@ public static class AppointmentMappingExtensions
                     doctor.Specialty!.Id,
                     doctor.Specialty.Name
                 )
-            )
+            ),
+            slotDate,
+            startTime
         );
     }
 }

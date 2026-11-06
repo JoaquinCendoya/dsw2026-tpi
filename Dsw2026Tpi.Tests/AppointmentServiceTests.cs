@@ -1,4 +1,4 @@
-﻿using Dsw2026Tpi.Application.Models;
+using Dsw2026Tpi.Application.Models;
 using Dsw2026Tpi.Application.Services;
 using Dsw2026Tpi.CrossCutting.Exceptions;
 using Dsw2026Tpi.CrossCutting.Resources;
@@ -195,12 +195,15 @@ public class AppointmentServiceTests
 
         var appointmentRepo = Substitute.For<IRepository<Appointment>>();
         var slotRepo = Substitute.For<IRepository<AvailabilitySlot>>();
+        var patientRepo = Substitute.For<IRepository<Patient>>();
 
         appointmentRepo.GetByIdAsync(appointmentId).Returns(appointment);
         slotRepo.GetByIdAsync(slotId).Returns(slot);
+        patientRepo.GetByIdAsync(appointment.PatientId).Returns(patient);
 
         _unitOfWorkSubstitute.Repository<Appointment>().Returns(appointmentRepo);
         _unitOfWorkSubstitute.Repository<AvailabilitySlot>().Returns(slotRepo);
+        _unitOfWorkSubstitute.Repository<Patient>().Returns(patientRepo);
 
         await _sut.CancelAsync(appointmentId, Convert.ToInt64(patient.Dni));
 
@@ -228,12 +231,15 @@ public class AppointmentServiceTests
 
         var appointmentRepo = Substitute.For<IRepository<Appointment>>();
         var slotRepo = Substitute.For<IRepository<AvailabilitySlot>>();
+        var patientRepo = Substitute.For<IRepository<Patient>>();
 
         appointmentRepo.GetByIdAsync(appointmentId).Returns(appointment);
         slotRepo.GetByIdAsync(appointment.AvailabilitySlotId).Returns(slot);
+        patientRepo.GetByIdAsync(appointment.PatientId).Returns(patient);
 
         _unitOfWorkSubstitute.Repository<Appointment>().Returns(appointmentRepo);
         _unitOfWorkSubstitute.Repository<AvailabilitySlot>().Returns(slotRepo);
+        _unitOfWorkSubstitute.Repository<Patient>().Returns(patientRepo);
 
         var exception = await Assert.ThrowsAsync<BusinessRuleException>(() => _sut.CancelAsync(appointmentId, Convert.ToInt64(patient.Dni)));
         exception.Error.ErrorCode.Should().Be("INVALID_APPOINTMENT_STATUS");
