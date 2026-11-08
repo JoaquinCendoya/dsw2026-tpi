@@ -95,39 +95,18 @@ public class DoctorService : IDoctorService
 
     public async Task Delete(Guid id)
     {
-        var doctor = await _unitOfWork.Repository<Doctor>().GetByIdAsync(id, includeDeleted: true)
+        var doctor = await _unitOfWork.Repository<Doctor>().GetByIdAsync(id)
             ?? throw new EntityNotFoundException(nameof(Doctor));
 
-        var rules = (await _unitOfWork.Repository<AvailabilityRule>()
-            .FindAsync(r => r.DoctorId == id, includeDeleted: true)).ToList();
-        var ruleIds = rules.Select(r => r.Id).ToList();
-
-        var slots = (await _unitOfWork.Repository<AvailabilitySlot>()
-            .FindAsync(s => ruleIds.Contains(s.AvailabilityRuleId), includeDeleted: true)).ToList();
-        var slotIds = slots.Select(s => s.Id).ToList();
-
-        var appointments = (await _unitOfWork.Repository<Appointment>()
-            .FindAsync(a => slotIds.Contains(a.AvailabilitySlotId), includeDeleted: true)).ToList();
-
-        if (appointments.Any())
-        {
-            throw new ConflictException(
-                "No se puede eliminar físicamente al doctor porque tiene turnos asociados. Puede desactivarlo en su lugar.",
-                "DOCTOR_HAS_APPOINTMENTS"
-            );
-        }
-
-        foreach (var slot in slots)
-        {
-            _unitOfWork.Repository<AvailabilitySlot>().HardDelete(slot);
-        }
+        var rules = await _unitOfWork.Repository<AvailabilityRule>()
+            .FindAsync(r => r.DoctorId == id);
 
         foreach (var rule in rules)
         {
-            _unitOfWork.Repository<AvailabilityRule>().HardDelete(rule);
+            _unitOfWork.Repository<AvailabilityRule>().Delete(rule);
         }
 
-        _unitOfWork.Repository<Doctor>().HardDelete(doctor);
+        _unitOfWork.Repository<Doctor>().Delete(doctor);
         await _unitOfWork.SaveChangesAsync();
     }
 
@@ -138,18 +117,10 @@ public class DoctorService : IDoctorService
 
         if (!isActive)
         {
-            var rules = await _unitOfWork.Repository<AvailabilityRule>()
-                .FindAsync(r => r.DoctorId == id);
-
-            foreach (var rule in rules)
-            {
-                _unitOfWork.Repository<AvailabilityRule>().Delete(rule);
-            }
-
-            _unitOfWork.Repository<Doctor>().Delete(doctor);
-            await _unitOfWork.SaveChangesAsync();
-
-            return doctor.ToResponse();
+            await Delete(id);
+            var deactivated = await _unitOfWork.Repository<Doctor>().GetByIdAsync(id, includeDeleted: true)
+                ?? throw new EntityNotFoundException(nameof(Doctor));
+            return deactivated.ToResponse();
         }
 
         var license = doctor.LicenseNumber.Trim();

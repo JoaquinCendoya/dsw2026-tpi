@@ -75,54 +75,8 @@ public class SpecialtyService : ISpecialtyService
 
     public async Task Delete(Guid id)
     {
-        var specialty = await _unitOfWork.Repository<Specialty>().GetByIdAsync(id, includeDeleted: true)
-            ?? throw new EntityNotFoundException(nameof(Specialty));
-
-        // Baja física en cascada: buscar todos los médicos asignados (incluso los dados de baja lógica)
-        var doctors = (await _unitOfWork.Repository<Doctor>()
-            .FindAsync(d => d.SpecialtyId == id, includeDeleted: true)).ToList();
-
-        var doctorIds = doctors.Select(d => d.Id).ToList();
-
-        if (doctorIds.Any())
-        {
-            var rules = (await _unitOfWork.Repository<AvailabilityRule>()
-                .FindAsync(r => doctorIds.Contains(r.DoctorId), includeDeleted: true)).ToList();
-            var ruleIds = rules.Select(r => r.Id).ToList();
-
-            var slots = (await _unitOfWork.Repository<AvailabilitySlot>()
-                .FindAsync(s => ruleIds.Contains(s.AvailabilityRuleId), includeDeleted: true)).ToList();
-            var slotIds = slots.Select(s => s.Id).ToList();
-
-            var appointments = (await _unitOfWork.Repository<Appointment>()
-                .FindAsync(a => slotIds.Contains(a.AvailabilitySlotId), includeDeleted: true)).ToList();
-
-            if (appointments.Any())
-            {
-                throw new ConflictException(
-                    "No se puede eliminar físicamente la especialidad porque contiene médicos con turnos registrados. Puede desactivarla desde el botón de estado.",
-                    "SPECIALTY_HAS_APPOINTMENTS"
-                );
-            }
-
-            foreach (var slot in slots)
-            {
-                _unitOfWork.Repository<AvailabilitySlot>().HardDelete(slot);
-            }
-
-            foreach (var rule in rules)
-            {
-                _unitOfWork.Repository<AvailabilityRule>().HardDelete(rule);
-            }
-
-            foreach (var doctor in doctors)
-            {
-                _unitOfWork.Repository<Doctor>().HardDelete(doctor);
-            }
-        }
-
-        _unitOfWork.Repository<Specialty>().HardDelete(specialty);
-        await _unitOfWork.SaveChangesAsync();
+        // Baja lógica en cascada (desactiva especialidad y sus médicos/reglas asociadas)
+        await SetStatus(id, false);
     }
 
     public async Task<SpecialtyModel.Response> SetStatus(Guid id, bool isActive)
