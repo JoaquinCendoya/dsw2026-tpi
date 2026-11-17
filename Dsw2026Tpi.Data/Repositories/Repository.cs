@@ -19,7 +19,7 @@ public class Repository<T> : IRepository<T> where T : EntityBase
     public async Task<T?> GetByIdAsync(Guid id, bool includeDeleted = false)
     {
         return includeDeleted
-            ? await _dbSet.FirstOrDefaultAsync(e => e.Id == id)
+            ? await _dbSet.IgnoreQueryFilters().FirstOrDefaultAsync(e => e.Id == id)
             : await _dbSet.FirstOrDefaultAsync(e => e.Id == id && !e.Deleted);
     }
 
@@ -88,7 +88,7 @@ public class Repository<T> : IRepository<T> where T : EntityBase
         pageSize = Math.Abs(pageSize);
         pageIndex = Math.Abs(pageIndex) == 0 ? 0 : Math.Abs(pageIndex) - 1;
 
-        var query = includeDeleted ? _dbSet.AsQueryable() : _dbSet.Where(e => !e.Deleted);
+        var query = includeDeleted ? _dbSet.IgnoreQueryFilters() : _dbSet.AsQueryable();
 
         foreach (var include in includes)
         {
