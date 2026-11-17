@@ -18,6 +18,11 @@ public class Repository<T> : IRepository<T> where T : EntityBase
 
     public async Task<T?> GetByIdAsync(Guid id)
     {
+        return await _dbSet.FirstOrDefaultAsync(e => e.Id == id && !e.Deleted);
+    }
+
+    public async Task<T?> GetByIdIncludingDeletedAsync(Guid id)
+    {
         return await _dbSet.IgnoreQueryFilters().FirstOrDefaultAsync(e => e.Id == id);
     }
 
@@ -64,19 +69,52 @@ public class Repository<T> : IRepository<T> where T : EntityBase
         _dbSet.Update(entity);
     }
     public async Task<Pagination<T>> PaginateAsync<TKey>(
-    int pageSize,
-    int pageIndex,
-    Expression<Func<T, bool>> predicate,
-    Expression<Func<T, TKey>> sortOrder,
-    bool descending = false,
-    params string[] includes)
+        int pageSize,
+        int pageIndex,
+        Expression<Func<T, bool>> predicate,
+        Expression<Func<T, TKey>> sortOrder,
+        bool descending = false,
+        params string[] includes)
+    {
+        return await PaginateQueryAsync(
+            _dbSet.Where(e => !e.Deleted),
+            pageSize,
+            pageIndex,
+            predicate,
+            sortOrder,
+            descending,
+            includes);
+    }
+
+    public async Task<Pagination<T>> PaginateIncludingDeletedAsync<TKey>(
+        int pageSize,
+        int pageIndex,
+        Expression<Func<T, bool>> predicate,
+        Expression<Func<T, TKey>> sortOrder,
+        bool descending = false,
+        params string[] includes)
+    {
+        return await PaginateQueryAsync(
+            _dbSet.IgnoreQueryFilters(),
+            pageSize,
+            pageIndex,
+            predicate,
+            sortOrder,
+            descending,
+            includes);
+    }
+
+    private static async Task<Pagination<T>> PaginateQueryAsync<TKey>(
+        IQueryable<T> query,
+        int pageSize,
+        int pageIndex,
+        Expression<Func<T, bool>> predicate,
+        Expression<Func<T, TKey>> sortOrder,
+        bool descending,
+        params string[] includes)
     {
         pageSize = Math.Abs(pageSize);
         pageIndex = Math.Abs(pageIndex) == 0 ? 0 : Math.Abs(pageIndex) - 1;
-
-        var query = typeof(T) == typeof(Specialty)
-            ? _dbSet.IgnoreQueryFilters()
-            : _dbSet.Where(e => !e.Deleted);
 
         foreach (var include in includes)
         {
