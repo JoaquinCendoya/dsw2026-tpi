@@ -1,4 +1,4 @@
-﻿using Dsw2026Tpi.Application.Models;
+using Dsw2026Tpi.Application.Models;
 using Dsw2026Tpi.Application.Interfaces;
 using Dsw2026Tpi.Application.Mappings;
 using Dsw2026Tpi.CrossCutting.Exceptions;
@@ -21,10 +21,10 @@ public class SpecialtyService : ISpecialtyService
         var specialties = await _unitOfWork.Repository<Specialty>().PaginateAsync(
             request.PageSize,
             request.PageIndex,
-            s => string.IsNullOrWhiteSpace(request.Name) || s.Name.Contains(request.Name),
+            s => (string.IsNullOrWhiteSpace(request.Name) || s.Name.Contains(request.Name))
+                && (request.IncludeInactive || !s.Deleted),
             s => s.Name,
-            request.Descending,
-            request.IncludeInactive
+            request.Descending
         );
 
         return specialties.Map(s => s.ToResponse());
@@ -64,7 +64,7 @@ public class SpecialtyService : ISpecialtyService
 
     public async Task<SpecialtyModel.Response> SetStatus(Guid id, bool isActive)
     {
-        var specialty = await _unitOfWork.Repository<Specialty>().GetByIdAsync(id, includeDeleted: true)
+        var specialty = await _unitOfWork.Repository<Specialty>().GetByIdAsync(id)
             ?? throw new EntityNotFoundException(nameof(Specialty));
 
         if (!isActive)

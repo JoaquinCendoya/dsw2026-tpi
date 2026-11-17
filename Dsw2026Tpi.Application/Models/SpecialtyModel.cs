@@ -1,4 +1,4 @@
-﻿namespace Dsw2026Tpi.Application.Models;
+namespace Dsw2026Tpi.Application.Models;
 
 public record SpecialtyModel
 {

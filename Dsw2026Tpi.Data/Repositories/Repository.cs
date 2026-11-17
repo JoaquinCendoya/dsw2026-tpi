@@ -1,4 +1,4 @@
-﻿using Dsw2026Tpi.Domain.Entities;
+using Dsw2026Tpi.Domain.Entities;
 using Dsw2026Tpi.Domain.Interfaces;
 using Microsoft.EntityFrameworkCore;
 using System.Linq.Expressions;
@@ -16,11 +16,9 @@ public class Repository<T> : IRepository<T> where T : EntityBase
         _dbSet = _context.Set<T>();
     }
 
-    public async Task<T?> GetByIdAsync(Guid id, bool includeDeleted = false)
+    public async Task<T?> GetByIdAsync(Guid id)
     {
-        return includeDeleted
-            ? await _dbSet.IgnoreQueryFilters().FirstOrDefaultAsync(e => e.Id == id)
-            : await _dbSet.FirstOrDefaultAsync(e => e.Id == id && !e.Deleted);
+        return await _dbSet.IgnoreQueryFilters().FirstOrDefaultAsync(e => e.Id == id);
     }
 
     public async Task<IEnumerable<T>> GetAllAsync()
@@ -73,22 +71,12 @@ public class Repository<T> : IRepository<T> where T : EntityBase
     bool descending = false,
     params string[] includes)
     {
-        return await PaginateAsync(pageSize, pageIndex, predicate, sortOrder, descending, false, includes);
-    }
-
-    public async Task<Pagination<T>> PaginateAsync<TKey>(
-    int pageSize,
-    int pageIndex,
-    Expression<Func<T, bool>> predicate,
-    Expression<Func<T, TKey>> sortOrder,
-    bool descending,
-    bool includeDeleted,
-    params string[] includes)
-    {
         pageSize = Math.Abs(pageSize);
         pageIndex = Math.Abs(pageIndex) == 0 ? 0 : Math.Abs(pageIndex) - 1;
 
-        var query = includeDeleted ? _dbSet.IgnoreQueryFilters() : _dbSet.AsQueryable();
+        var query = typeof(T) == typeof(Specialty)
+            ? _dbSet.IgnoreQueryFilters()
+            : _dbSet.Where(e => !e.Deleted);
 
         foreach (var include in includes)
         {
