@@ -7,7 +7,16 @@ public record SpecialtyModel
     public record StatusRequest(bool IsActive);
 
     public record Response(Guid Id, string Name, string Description, bool IsActive = true);
-    
+
     public record SearchRequest(int PageSize, int PageIndex, string? Name = null, bool Descending = false, bool IncludeInactive = false);
+
+    public record MetricsResponse(
+        int TotalSpecialties,
+        int QuarterlyGrowthCount,
+        string? MostDemandedSpecialtyName,
+        int MostDemandedAppointmentsCount,
+        double MostDemandedPercentage,
+        int NewThisMonthCount,
+        IEnumerable<string> NewThisMonthNames);
 }
 

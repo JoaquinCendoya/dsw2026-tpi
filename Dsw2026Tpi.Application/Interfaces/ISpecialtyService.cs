@@ -13,5 +13,6 @@ namespace Dsw2026Tpi.Application.Interfaces
         Task<SpecialtyModel.Response> Update(Guid id, SpecialtyModel.Request request);
         Task Delete(Guid id);
         Task<SpecialtyModel.Response> SetStatus(Guid id, bool isActive);
+        Task<SpecialtyModel.MetricsResponse> GetMetrics();
     }
 }
