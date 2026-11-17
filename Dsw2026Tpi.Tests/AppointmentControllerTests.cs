@@ -151,6 +151,21 @@ namespace Dsw2026Tpi.Tests
         }
 
         [Fact]
+        public async Task GetByPatientAsync_PropagaLaSolicitudDeHistorial()
+        {
+            const long dni = 30123456;
+            SetPatientDni(dni);
+
+            await _controller.GetByPatientAsync(includeHistory: true);
+
+            await _serviceMock.Received(1).GetByPatientDniAsync(
+                Arg.Is<AppointmentModel.PatientDto>(p => p.Dni == dni),
+                10,
+                1,
+                true);
+        }
+
+        [Fact]
         public async Task GetByPatientAsync_RetornaForbidden_CuandoElTokenNoTieneClaimDni()
         {
             // Arrange

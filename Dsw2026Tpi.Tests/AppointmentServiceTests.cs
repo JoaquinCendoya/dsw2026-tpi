@@ -247,7 +247,7 @@ public class AppointmentServiceTests
     }
 
     [Fact]
-    public async Task GetByPatientDniAsync_ExcluyeTurnosPasadosYConservaLosFuturos()
+    public async Task GetByPatientDniAsync_FiltraTurnosActivosPorDefectoYPermiteConsultarHistorial()
     {
         var now = DateTime.UtcNow;
         var pastStart = now.AddHours(-2);
@@ -322,6 +322,15 @@ public class AppointmentServiceTests
         result.Total.Should().Be(1);
         result.Data.Should().ContainSingle()
             .Which.AppointmentsId.Should().Be(futureAppointment.Id);
+
+        var history = await service.GetByPatientDniAsync(
+            new AppointmentModel.PatientDto(long.Parse(patient.Dni)),
+            includeHistory: true);
+
+        history.Total.Should().Be(3);
+        history.Data.Should().Contain(x => x.AppointmentsId == pastAppointment.Id);
+        history.Data.Should().Contain(x => x.AppointmentsId == futureAppointment.Id);
+        history.Data.Should().Contain(x => x.AppointmentsId == cancelledAppointment.Id);
     }
 
     [Fact]

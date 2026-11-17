@@ -47,7 +47,7 @@ public class AppointmentController : ControllerBase
     }
 
     /// <summary>
-    /// Obtiene los turnos activos del paciente autenticado de manera segura usando su Token JWT con soporte de paginación.
+    /// Obtiene los turnos del paciente autenticado. Por defecto devuelve turnos vigentes; includeHistory=true incluye todas sus reservas.
     /// </summary>
     /// <response code="200">Listado paginado de turnos activos del paciente.</response>
     /// <response code="403">No se pudo validar la identidad del paciente desde el token.</response>
@@ -55,7 +55,10 @@ public class AppointmentController : ControllerBase
     [Authorize(Policy = Policies.PatientPolicy)]
     [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status403Forbidden)]
-    public async Task<IActionResult> GetByPatientAsync([FromQuery] int pageSize = 10, [FromQuery] int pageIndex = 1)
+    public async Task<IActionResult> GetByPatientAsync(
+        [FromQuery] int pageSize = 10,
+        [FromQuery] int pageIndex = 1,
+        [FromQuery] bool includeHistory = false)
     {
         // VALIDACIÓN DE PACIENTE: Extraer el DNI desde el Claim del token JWT para evitar suplantación de identidad (IDOR)
         if (!TryGetAuthenticatedPatientDni(out var tokenDni))
@@ -64,7 +67,8 @@ public class AppointmentController : ControllerBase
         }
 
         // Se envía a la capa de aplicación el DNI extraído del token de forma segura al igual que los datos de paginado
-        var response = await _service.GetByPatientDniAsync(new AppointmentModel.PatientDto(tokenDni), pageSize, pageIndex);
+        var response = await _service.GetByPatientDniAsync(
+            new AppointmentModel.PatientDto(tokenDni), pageSize, pageIndex, includeHistory);
         return Ok(response);
     }
 
