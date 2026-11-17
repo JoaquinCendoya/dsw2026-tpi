@@ -11,6 +11,9 @@ namespace Dsw2026Tpi.Api.Controllers
     [Authorize(Policy = Policies.AdminPolicy)]
     public class DashboardController : ControllerBase
     {
+        private static readonly TimeZoneInfo ProjectTimeZone =
+            TimeZoneInfo.FindSystemTimeZoneById("America/Argentina/Tucuman");
+
         private readonly IDashboardService _dashboardService;
 
         public DashboardController(IDashboardService dashboardService)
@@ -19,10 +22,19 @@ namespace Dsw2026Tpi.Api.Controllers
         }
 
         [HttpGet("summary")]
-        public async Task<IActionResult> GetSummary([FromQuery] DateOnly date, CancellationToken cancellationToken)
+        public async Task<IActionResult> GetSummary(
+            [FromQuery] DateOnly? date = null,
+            CancellationToken cancellationToken = default)
         {
-            var result = await _dashboardService.GetSummaryAsync(date, cancellationToken);
+            var summaryDate = date ?? GetCurrentDate();
+            var result = await _dashboardService.GetSummaryAsync(summaryDate, cancellationToken);
             return Ok(result);
+        }
+
+        private static DateOnly GetCurrentDate()
+        {
+            var projectTime = TimeZoneInfo.ConvertTime(DateTimeOffset.UtcNow, ProjectTimeZone);
+            return DateOnly.FromDateTime(projectTime.DateTime);
         }
     }
 }
