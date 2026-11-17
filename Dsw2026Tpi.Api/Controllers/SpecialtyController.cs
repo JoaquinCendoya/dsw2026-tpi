@@ -94,4 +94,21 @@ public class SpecialtyController : ControllerBase
         await _service.Delete(id);
         return Ok("ok");
     }
+
+    /// <summary>
+    /// Obtiene las métricas agregadas del directorio de especialidades.
+    /// </summary>
+    /// <response code="200">Métricas obtenidas exitosamente.</response>
+    /// <response code="401">No se proporcionó un token válido.</response>
+    /// <response code="403">El usuario no tiene rol administrador.</response>
+    [HttpGet("metrics")]
+    [Authorize(Policy = Policies.AdminPolicy)]
+    [ProducesResponseType(typeof(SpecialtyModel.MetricsResponse), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status403Forbidden)]
+    public async Task<IActionResult> GetMetrics()
+    {
+        var metrics = await _service.GetMetrics();
+        return Ok(metrics);
+    }
 }
