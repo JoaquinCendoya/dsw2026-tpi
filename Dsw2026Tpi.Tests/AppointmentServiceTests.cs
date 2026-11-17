@@ -322,6 +322,10 @@ public class AppointmentServiceTests
         result.Total.Should().Be(1);
         result.Data.Should().ContainSingle()
             .Which.AppointmentsId.Should().Be(futureAppointment.Id);
+        result.Data.Single().Date.Should().Be(futureSlot.SlotDate);
+        result.Data.Single().StartTime.Should().Be(futureSlot.StartTime);
+        result.Data.Single().EndTime.Should().Be(futureSlot.EndTime);
+        result.Data.Single().AppointmentsStatus.Should().Be("BOOKED");
 
         var history = await service.GetByPatientDniAsync(
             new AppointmentModel.PatientDto(long.Parse(patient.Dni)),
@@ -331,6 +335,8 @@ public class AppointmentServiceTests
         history.Data.Should().Contain(x => x.AppointmentsId == pastAppointment.Id);
         history.Data.Should().Contain(x => x.AppointmentsId == futureAppointment.Id);
         history.Data.Should().Contain(x => x.AppointmentsId == cancelledAppointment.Id);
+        history.Data.Single(x => x.AppointmentsId == cancelledAppointment.Id)
+            .AppointmentsStatus.Should().Be("CANCELLED");
     }
 
     [Fact]

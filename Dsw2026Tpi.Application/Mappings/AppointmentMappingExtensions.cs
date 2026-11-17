@@ -28,7 +28,7 @@ public static class AppointmentMappingExtensions
 
         return new AppointmentModel.SearchResponse(
             entity.Id,
-            entity.Status.ToString(), // O el literal de estado correspondiente
+            StatusLiterals[entity.Status],
             new AppointmentModel.PatientSummary(
                 dniValue,
                 !string.IsNullOrWhiteSpace(patient.FullName) ? patient.FullName : "Sin nombre"
@@ -40,7 +40,10 @@ public static class AppointmentMappingExtensions
                     doctor.Specialty!.Id,
                     doctor.Specialty.Name
                 )
-            )
+            ),
+            entity.AvailabilitySlot.SlotDate,
+            entity.AvailabilitySlot.StartTime,
+            entity.AvailabilitySlot.EndTime
         );
     }
 }
