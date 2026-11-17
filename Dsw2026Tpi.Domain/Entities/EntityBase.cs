@@ -12,4 +12,10 @@ public abstract class EntityBase(Guid? id = null)
         Deleted = true;
         UpdatedAt = DateTime.UtcNow;
     }
+
+    public void Restore()
+    {
+        Deleted = false;
+        UpdatedAt = DateTime.UtcNow;
+    }
 }
