@@ -114,12 +114,18 @@ public class AppointmentService : IAppointmentService
         var patients = await _unitOfWork.Repository<Patient>().FindAsync(p => p.Dni == dniString);
         var patient = patients.FirstOrDefault()
                    ?? throw new EntityNotFoundException(nameof(Patient));
+        var nowUtc = DateTime.UtcNow;
+        var today = DateOnly.FromDateTime(nowUtc);
+        var currentTime = TimeOnly.FromDateTime(nowUtc);
 
-        // Trae los turnos paginados activos mapeando las relaciones necesarias requeridas por las tarjetas de la UI
+        // Excluye turnos pasados y estados que ya no están activos.
         var appointments = await _unitOfWork.Repository<Appointment>().PaginateAsync(
             pageSize,
             pageIndex,
-            a => a.PatientId == patient.Id && a.Status == AppointmentStatus.Booked, // Filtrar solo activos según RN
+            a => a.PatientId == patient.Id &&
+                 a.Status == AppointmentStatus.Booked &&
+                 (a.AvailabilitySlot.SlotDate > today ||
+                  (a.AvailabilitySlot.SlotDate == today && a.AvailabilitySlot.StartTime > currentTime)),
             a => a.AvailabilitySlot.SlotDate,
             false, // Orden cronológico ascendente (los más próximos primero)
             "AvailabilitySlot.AvailabilityRule.Doctor.Specialty", "Patient");
