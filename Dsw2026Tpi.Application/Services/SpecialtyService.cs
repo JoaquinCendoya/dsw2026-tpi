@@ -5,7 +5,6 @@ using Dsw2026Tpi.CrossCutting.Exceptions;
 using Dsw2026Tpi.Domain.Entities;
 using Dsw2026Tpi.Domain.Interfaces;
 using Dsw2026Tpi.Domain.Enums;
-using System.Linq.Expressions;
 
 namespace Dsw2026Tpi.Application.Services;
 
@@ -20,23 +19,14 @@ public class SpecialtyService : ISpecialtyService
 
     public async Task<Pagination<SpecialtyModel.Response>> GetAll(SpecialtyModel.SearchRequest request)
     {
-        var repository = _unitOfWork.Repository<Specialty>();
-        Expression<Func<Specialty, bool>> predicate = s =>
-            string.IsNullOrWhiteSpace(request.Name) || s.Name.Contains(request.Name);
-
-        var specialties = request.IncludeInactive
-            ? await repository.PaginateIncludingDeletedAsync(
-                request.PageSize,
-                request.PageIndex,
-                predicate,
-                s => s.Name,
-                request.Descending)
-            : await repository.PaginateAsync(
-                request.PageSize,
-                request.PageIndex,
-                predicate,
-                s => s.Name,
-                request.Descending);
+        var specialties = await _unitOfWork.Repository<Specialty>().PaginateIncludingDeletedAsync(
+            request.PageSize,
+            request.PageIndex,
+            s => (string.IsNullOrWhiteSpace(request.Name) || s.Name.Contains(request.Name))
+                && (request.IncludeInactive || !s.Deleted),
+            s => s.Name,
+            request.Descending
+        );
 
         return specialties.Map(s => s.ToResponse());
     }
