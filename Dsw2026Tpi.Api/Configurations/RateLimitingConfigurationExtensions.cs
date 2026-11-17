@@ -9,22 +9,24 @@ public static class RateLimitingConfigurationExtensions
     {
         services.AddRateLimiter(options =>
         {
-            void AddFixedWindowPolicy(string policyName, string limitConfigKey, Func<HttpContext, string> partitionKey)
+            void AddFixedWindowPolicy(string policyName, string limitConfigKey, int defaultLimit, Func<HttpContext, string> partitionKey)
             {
+                var configuredLimit = configuration.GetValue<int?>($"RateLimiting:{limitConfigKey}");
+                var permitLimit = configuredLimit is > 0 ? configuredLimit.Value : defaultLimit;
                 options.AddPolicy(policyName, context => RateLimitPartition.GetFixedWindowLimiter(
                     partitionKey(context),
                     _ => new FixedWindowRateLimiterOptions
                     {
-                        PermitLimit = configuration.GetValue<int>($"RateLimiting:{limitConfigKey}"),
+                        PermitLimit = permitLimit,
                         Window = TimeSpan.FromMinutes(1),
                         QueueLimit = 0
                     }));
             }
 
-            AddFixedWindowPolicy("AdminLoginPolicy", "AdminLoginLimit", GetClientIp);
-            AddFixedWindowPolicy("PatientLoginPolicy", "PatientLoginLimit", GetClientIp);
-            AddFixedWindowPolicy("AppointmentPolicy", "AppointmentLimit", GetAuthenticatedClient);
-            AddFixedWindowPolicy("DefaultPolicy", "DefaultLimit", GetAuthenticatedClient);
+            AddFixedWindowPolicy("AdminLoginPolicy", "AdminLoginLimit",5, GetClientIp);
+            AddFixedWindowPolicy("PatientLoginPolicy", "PatientLoginLimit",10, GetClientIp);
+            AddFixedWindowPolicy("AppointmentPolicy", "AppointmentLimit",5, GetAuthenticatedClient);
+            AddFixedWindowPolicy("DefaultPolicy", "DefaultLimit",100, GetAuthenticatedClient);
 
             options.OnRejected = async (context, cancellationToken) =>
             {
