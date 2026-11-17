@@ -132,6 +132,23 @@ public class DoctorController : AppController
     }
 
     /// <summary>
+    /// Activa o desactiva un médico del sistema.
+    /// </summary>
+    /// <param name="id">Id del médico.</param>
+    /// <param name="request">Estado activo o inactivo.</param>
+    [HttpPut("{id:guid}/status")]
+    [Authorize(Policy = Policies.AdminPolicy)]
+    [ProducesResponseType(typeof(DoctorModel.Response), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status404NotFound)]
+    [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status403Forbidden)]
+    public async Task<IActionResult> SetStatus([FromRoute] Guid id, [FromBody] DoctorModel.StatusRequest request)
+    {
+        var result = await _service.SetStatus(id, request.IsActive);
+        return Ok(result);
+    }
+
+    /// <summary>
     /// Consulta los slots persistidos futuros y libres de un médico para un rango de fechas.
     /// </summary>
     /// <param name="id">Id del médico.</param>

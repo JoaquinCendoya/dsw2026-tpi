@@ -4,7 +4,9 @@ public record DoctorModel
 {
     public record Request(string Name, string LicenseNumber, Guid SpecialtyId);
 
-    public record Response(Guid Id, string Name, string LicenseNumber, SpecialtyDto? Specialty);
+    public record StatusRequest(bool IsActive);
+
+    public record Response(Guid Id, string Name, string LicenseNumber, SpecialtyDto? Specialty, bool IsActive = true);
 
     public record SpecialtyDto(Guid? Id, string? Name);
 
@@ -18,7 +20,8 @@ public record DoctorModel
         int PageIndex,
         string? Name = null,
         bool Descending = false,
-        Guid? SpecialtyId = null);
+        Guid? SpecialtyId = null,
+        bool IncludeInactive = false);
 
     public record AvailableSlotResponse(
         Guid AvailabilitySlotId,

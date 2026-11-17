@@ -20,11 +20,12 @@ public class DoctorService : IDoctorService
 
     public async Task<Pagination<DoctorModel.Response>> GetAll(DoctorModel.SearchRequest request)
     {
-        var doctors = await _unitOfWork.Repository<Doctor>().PaginateAsync(
+        var doctors = await _unitOfWork.Repository<Doctor>().PaginateIncludingDeletedAsync(
             request.PageSize,
             request.PageIndex,
             d => (string.IsNullOrWhiteSpace(request.Name) || d.Name.Contains(request.Name))
-                && (!request.SpecialtyId.HasValue || d.SpecialtyId == request.SpecialtyId.Value),
+                && (!request.SpecialtyId.HasValue || d.SpecialtyId == request.SpecialtyId.Value)
+                && (request.IncludeInactive || !d.Deleted),
             d => d.Name,
             request.Descending,
             nameof(Doctor.Specialty)
@@ -79,6 +80,25 @@ public class DoctorService : IDoctorService
 
         _unitOfWork.Repository<Doctor>().Delete(doctor);
         await _unitOfWork.SaveChangesAsync();
+    }
+
+    public async Task<DoctorModel.Response> SetStatus(Guid id, bool isActive)
+    {
+        var doctor = await _unitOfWork.Repository<Doctor>().GetByIdIncludingDeletedAsync(id)
+            ?? throw new EntityNotFoundException(nameof(Doctor));
+
+        if (!isActive)
+        {
+            _unitOfWork.Repository<Doctor>().Delete(doctor);
+        }
+        else
+        {
+            doctor.Restore();
+            _unitOfWork.Repository<Doctor>().Update(doctor);
+        }
+
+        await _unitOfWork.SaveChangesAsync();
+        return doctor.ToResponse();
     }
 
     public async Task<IEnumerable<DoctorModel.AvailabilityResponse>> GetAvailabilities(Guid id)
