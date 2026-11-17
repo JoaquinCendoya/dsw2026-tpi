@@ -21,6 +21,7 @@ public static class DependencyInjectionConfigurationExtensions
         services.AddScoped<IAvailabilityService, AvailabilityService>();
         services.AddScoped<IAppointmentService, AppointmentService>();
         services.AddValidatorsFromAssemblyContaining<AppointmentRequestValidator>();
+        services.AddScoped<IDashboardService, DashboardService>();
         return services;
     }
 }
