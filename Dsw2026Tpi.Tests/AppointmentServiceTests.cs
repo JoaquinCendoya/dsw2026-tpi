@@ -2,6 +2,8 @@
 using Dsw2026Tpi.Application.Services;
 using Dsw2026Tpi.CrossCutting.Exceptions;
 using Dsw2026Tpi.CrossCutting.Resources;
+using Dsw2026Tpi.Data;
+using Dsw2026Tpi.Data.Repositories;
 using Dsw2026Tpi.Domain.Entities;
 using Dsw2026Tpi.Domain.Enums;
 using Dsw2026Tpi.Domain.Interfaces;
@@ -242,6 +244,99 @@ public class AppointmentServiceTests
 
         var exception = await Assert.ThrowsAsync<BusinessRuleException>(() => _sut.CancelAsync(appointmentId, Convert.ToInt64(patient.Dni)));
         exception.Error.ErrorCode.Should().Be("INVALID_APPOINTMENT_STATUS");
+    }
+
+    [Fact]
+    public async Task GetByPatientDniAsync_FiltraTurnosActivosPorDefectoYPermiteConsultarHistorial()
+    {
+        var now = DateTime.UtcNow;
+        var pastStart = now.AddHours(-2);
+        var futureStart = now.AddHours(2);
+        var cancelledStart = now.AddHours(3);
+        var specialty = new Specialty("Cardiologia", "Descripción clínica", Guid.NewGuid());
+        var doctor = new Doctor("Dr. Test", "12345", specialty, Guid.NewGuid());
+        var rule = new AvailabilityRule(
+            doctor,
+            now.Month,
+            now.Year,
+            now.DayOfWeek,
+            new TimeOnly(8, 0),
+            new TimeOnly(18, 0),
+            Guid.NewGuid());
+        var patient = new Patient(Guid.NewGuid(), "12345678", "Paciente de prueba");
+        var pastSlot = new AvailabilitySlot(
+            rule,
+            DateOnly.FromDateTime(pastStart),
+            TimeOnly.FromDateTime(pastStart),
+            TimeOnly.FromDateTime(pastStart.AddMinutes(30)));
+        var futureSlot = new AvailabilitySlot(
+            rule,
+            DateOnly.FromDateTime(futureStart),
+            TimeOnly.FromDateTime(futureStart),
+            TimeOnly.FromDateTime(futureStart.AddMinutes(30)));
+        var cancelledSlot = new AvailabilitySlot(
+            rule,
+            DateOnly.FromDateTime(cancelledStart),
+            TimeOnly.FromDateTime(cancelledStart),
+            TimeOnly.FromDateTime(cancelledStart.AddMinutes(30)));
+        typeof(AvailabilitySlot)
+            .GetProperty(nameof(AvailabilitySlot.RowVersion))!
+            .SetValue(pastSlot, Array.Empty<byte>());
+        typeof(AvailabilitySlot)
+            .GetProperty(nameof(AvailabilitySlot.RowVersion))!
+            .SetValue(futureSlot, Array.Empty<byte>());
+        typeof(AvailabilitySlot)
+            .GetProperty(nameof(AvailabilitySlot.RowVersion))!
+            .SetValue(cancelledSlot, Array.Empty<byte>());
+        var pastAppointment = new Appointment(pastSlot, patient, "Control pasado");
+        var futureAppointment = new Appointment(futureSlot, patient, "Control futuro");
+        var cancelledAppointment = new Appointment(
+            cancelledSlot,
+            patient,
+            "Control cancelado");
+        cancelledAppointment.Cancel();
+        var options = new DbContextOptionsBuilder<Dsw2026TpiDbContext>()
+            .UseInMemoryDatabase(Guid.NewGuid().ToString())
+            .Options;
+        await using var context = new Dsw2026TpiDbContext(options);
+        context.AddRange(
+            specialty,
+            doctor,
+            rule,
+            patient,
+            pastSlot,
+            futureSlot,
+            cancelledSlot,
+            pastAppointment,
+            futureAppointment,
+            cancelledAppointment);
+        await context.SaveChangesAsync();
+
+        var service = new AppointmentService(
+            new UnitOfWork(context),
+            NullLogger<AppointmentService>.Instance);
+
+        var result = await service.GetByPatientDniAsync(
+            new AppointmentModel.PatientDto(long.Parse(patient.Dni)));
+
+        result.Total.Should().Be(1);
+        result.Data.Should().ContainSingle()
+            .Which.AppointmentsId.Should().Be(futureAppointment.Id);
+        result.Data.Single().Date.Should().Be(futureSlot.SlotDate);
+        result.Data.Single().StartTime.Should().Be(futureSlot.StartTime);
+        result.Data.Single().EndTime.Should().Be(futureSlot.EndTime);
+        result.Data.Single().AppointmentsStatus.Should().Be("BOOKED");
+
+        var history = await service.GetByPatientDniAsync(
+            new AppointmentModel.PatientDto(long.Parse(patient.Dni)),
+            includeHistory: true);
+
+        history.Total.Should().Be(3);
+        history.Data.Should().Contain(x => x.AppointmentsId == pastAppointment.Id);
+        history.Data.Should().Contain(x => x.AppointmentsId == futureAppointment.Id);
+        history.Data.Should().Contain(x => x.AppointmentsId == cancelledAppointment.Id);
+        history.Data.Single(x => x.AppointmentsId == cancelledAppointment.Id)
+            .AppointmentsStatus.Should().Be("CANCELLED");
     }
 
     [Fact]

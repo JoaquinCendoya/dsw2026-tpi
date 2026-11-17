@@ -108,18 +108,26 @@ public class AppointmentService : IAppointmentService
     }
 
     // VALIDACIÓN DE PACIENTE: Método paginado que consulta únicamente mediante el DNI seguro extraído del JWT
-    public async Task<Pagination<AppointmentModel.SearchResponse>> GetByPatientDniAsync(AppointmentModel.PatientDto request,int pageSize = 10 , int pageIndex = 1)
+    public async Task<Pagination<AppointmentModel.SearchResponse>> GetByPatientDniAsync(
+        AppointmentModel.PatientDto request, int pageSize = 10, int pageIndex = 1, bool includeHistory = false)
     {
         string dniString = request.Dni.ToString();
         var patients = await _unitOfWork.Repository<Patient>().FindAsync(p => p.Dni == dniString);
         var patient = patients.FirstOrDefault()
                    ?? throw new EntityNotFoundException(nameof(Patient));
+        var nowUtc = DateTime.UtcNow;
+        var today = DateOnly.FromDateTime(nowUtc);
+        var currentTime = TimeOnly.FromDateTime(nowUtc);
 
-        // Trae los turnos paginados activos mapeando las relaciones necesarias requeridas por las tarjetas de la UI
+        // Por defecto devuelve turnos vigentes. El historial incluye todas las reservas del paciente.
         var appointments = await _unitOfWork.Repository<Appointment>().PaginateAsync(
             pageSize,
             pageIndex,
-            a => a.PatientId == patient.Id && a.Status == AppointmentStatus.Booked, // Filtrar solo activos según RN
+            a => a.PatientId == patient.Id &&
+                 (includeHistory ||
+                  (a.Status == AppointmentStatus.Booked &&
+                   (a.AvailabilitySlot.SlotDate > today ||
+                    (a.AvailabilitySlot.SlotDate == today && a.AvailabilitySlot.StartTime > currentTime)))),
             a => a.AvailabilitySlot.SlotDate,
             false, // Orden cronológico ascendente (los más próximos primero)
             "AvailabilitySlot.AvailabilityRule.Doctor.Specialty", "Patient");
