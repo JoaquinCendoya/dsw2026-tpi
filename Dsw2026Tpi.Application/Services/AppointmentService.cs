@@ -6,6 +6,7 @@ using Dsw2026Tpi.Domain.Entities;
 using Dsw2026Tpi.Domain.Enums;
 using Dsw2026Tpi.Domain.Interfaces;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Data.SqlClient;
 using Microsoft.Extensions.Logging;
 using static Microsoft.EntityFrameworkCore.DbLoggerCategory;
 
@@ -65,9 +66,11 @@ public class AppointmentService : IAppointmentService
         }
         catch (DbUpdateConcurrencyException)
         {
-            _logger.LogWarning("Conflicto al reservar turno. SlotId: {SlotId}, Dni: {Dni}",
-                request.AvailabilitySlotId, request.Patient.Dni);
-            throw new ConflictException("El turno ya fue reservado por otro paciente.", "APPOINTMENT_CONFLICT");
+            throw CreateBookingConflict(request);
+        }
+        catch (DbUpdateException exception) when (IsActiveAppointmentUniqueConstraintViolation(exception))
+        {
+            throw CreateBookingConflict(request);
         }
         await transaction.CommitAsync();
 
@@ -90,7 +93,9 @@ public class AppointmentService : IAppointmentService
         if (patient.Dni != patientDni.ToString())
         {
             _logger.LogWarning("Intento de cancelación no autorizado. Turno: {AppointmentId}, Solicitante DNI: {Dni}", id, patientDni);
-            throw new BusinessRuleException("El turno indicado no pertenece al paciente autenticado.", "UNAUTHORIZED_APPOINTMENT_ACCESS");
+            throw new AuthorizationException(
+                "El turno indicado no pertenece al paciente autenticado.",
+                "FORBIDDEN_APPOINTMENT_ACCESS");
         }
 
         var availabilitySlot = await _unitOfWork.Repository<AvailabilitySlot>().GetByIdAsync(appointment.AvailabilitySlotId)
@@ -105,6 +110,20 @@ public class AppointmentService : IAppointmentService
         await _unitOfWork.SaveChangesAsync();
 
         _logger.LogInformation("Turno cancelado de forma segura por el paciente. AppointmentId: {AppointmentId}", id);
+    }
+
+    private ConflictException CreateBookingConflict(AppointmentModel.Request request)
+    {
+        _logger.LogWarning("Conflicto al reservar turno. SlotId: {SlotId}, Dni: {Dni}",
+            request.AvailabilitySlotId, request.Patient.Dni);
+        return new ConflictException("El turno ya fue reservado por otro paciente.", "APPOINTMENT_CONFLICT");
+    }
+
+    private static bool IsActiveAppointmentUniqueConstraintViolation(DbUpdateException exception)
+    {
+        // SQL Server puede reportar la carrera mediante el índice único filtrado en vez del RowVersion.
+        return exception.GetBaseException() is SqlException { Number: 2601 or 2627 } sqlException &&
+               sqlException.Message.Contains("IX_Appointments_AvailabilitySlotId", StringComparison.OrdinalIgnoreCase);
     }
 
     // VALIDACIÓN DE PACIENTE: Método paginado que consulta únicamente mediante el DNI seguro extraído del JWT

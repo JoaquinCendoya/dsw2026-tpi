@@ -11,4 +11,9 @@ public class AuthorizationException : AppException
         : base(ErrorCodes.AUTHORIZATION_FAILED, nameof(ErrorCodes.AUTHORIZATION_FAILED))
     {
     }
+
+    public AuthorizationException(string message, string errorCode)
+        : base(message, errorCode)
+    {
+    }
 }
