@@ -1,4 +1,4 @@
-﻿using Dsw2026Tpi.Application.Common;
+using Dsw2026Tpi.Application.Common;
 using Dsw2026Tpi.Application.Interfaces;
 using Dsw2026Tpi.Application.Mappings;
 using Dsw2026Tpi.Application.Models;
@@ -27,6 +27,7 @@ public class DoctorService : IDoctorService
                 && (!request.SpecialtyId.HasValue || d.SpecialtyId == request.SpecialtyId.Value),
             d => d.Name,
             request.Descending,
+            false,
             nameof(Doctor.Specialty)
         );
 

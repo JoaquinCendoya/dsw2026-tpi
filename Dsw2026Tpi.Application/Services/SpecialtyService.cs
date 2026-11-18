@@ -1,4 +1,4 @@
-﻿using Dsw2026Tpi.Application.Models;
+using Dsw2026Tpi.Application.Models;
 using Dsw2026Tpi.Application.Interfaces;
 using Dsw2026Tpi.Application.Mappings;
 using Dsw2026Tpi.CrossCutting.Exceptions;
@@ -24,7 +24,8 @@ public class SpecialtyService : ISpecialtyService
             request.PageIndex,
             s => string.IsNullOrWhiteSpace(request.Name) || s.Name.Contains(request.Name),
             s => s.Name,
-            request.Descending
+            request.Descending,
+            request.IncludeInactive
         );
 
         return specialties.Map(s => s.ToResponse());
@@ -60,6 +61,25 @@ public class SpecialtyService : ISpecialtyService
 
         _unitOfWork.Repository<Specialty>().Delete(specialty);
         await _unitOfWork.SaveChangesAsync();
+    }
+
+    public async Task<SpecialtyModel.Response> SetStatus(Guid id, bool isActive)
+    {
+        var specialty = await _unitOfWork.Repository<Specialty>().GetByIdAsync(id, includeDeleted: true)
+            ?? throw new EntityNotFoundException(nameof(Specialty));
+
+        if (!isActive)
+        {
+            _unitOfWork.Repository<Specialty>().Delete(specialty);
+        }
+        else
+        {
+            specialty.Restore();
+            _unitOfWork.Repository<Specialty>().Update(specialty);
+        }
+
+        await _unitOfWork.SaveChangesAsync();
+        return specialty.ToResponse();
     }
 
     public async Task<SpecialtyModel.MetricsResponse> GetMetrics()

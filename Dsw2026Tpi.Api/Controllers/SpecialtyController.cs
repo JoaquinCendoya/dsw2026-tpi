@@ -1,4 +1,4 @@
-﻿using Dsw2026Tpi.Application.Models;
+using Dsw2026Tpi.Application.Models;
 using Dsw2026Tpi.Application.Interfaces;
 using Dsw2026Tpi.CrossCutting.Identity;
 using Dsw2026Tpi.CrossCutting.Models;
@@ -93,6 +93,23 @@ public class SpecialtyController : ControllerBase
     {
         await _service.Delete(id);
         return Ok("ok");
+    }
+
+    /// <summary>
+    /// Activa o desactiva una especialidad médica.
+    /// </summary>
+    /// <param name="id">Id de la especialidad.</param>
+    /// <param name="request">Estado activo o inactivo.</param>
+    [HttpPatch("{id}/status")]
+    [Authorize(Policy = Policies.AdminPolicy)]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status404NotFound)]
+    [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status403Forbidden)]
+    public async Task<IActionResult> SetStatus(Guid id, [FromBody] SpecialtyModel.StatusRequest request)
+    {
+        var result = await _service.SetStatus(id, request.IsActive);
+        return Ok(result);
     }
 
     /// <summary>
