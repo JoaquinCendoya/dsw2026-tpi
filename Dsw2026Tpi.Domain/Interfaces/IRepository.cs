@@ -5,8 +5,7 @@ namespace Dsw2026Tpi.Domain.Interfaces;
 
 public interface IRepository<T> where T : EntityBase
 {
-    Task<T?> GetByIdAsync(Guid id);
-    Task<T?> GetByIdIncludingDeletedAsync(Guid id);
+    Task<T?> GetByIdAsync(Guid id, bool includeDeleted = false);
     Task<IEnumerable<T>> GetAllAsync();
     Task<IEnumerable<T>> FindAsync(Expression<Func<T, bool>> predicate);
     Task AddAsync(T entity);
@@ -21,13 +20,7 @@ public interface IRepository<T> where T : EntityBase
         Expression<Func<T, bool>> predicate,
         Expression<Func<T, TKey>> sortOrder,
         bool descending = false,
-        params string[] includes);
-    Task<Pagination<T>> PaginateIncludingDeletedAsync<TKey>(
-        int pageSize,
-        int pageIndex,
-        Expression<Func<T, bool>> predicate,
-        Expression<Func<T, TKey>> sortOrder,
-        bool descending = false,
+        bool includeDeleted = false,
         params string[] includes);
     Task<IEnumerable<T>> FindAsync(Expression<Func<T, bool>> predicate, params string[] includes);
 }

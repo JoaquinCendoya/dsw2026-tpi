@@ -130,6 +130,7 @@ public class AppointmentService : IAppointmentService
                     (a.AvailabilitySlot.SlotDate == today && a.AvailabilitySlot.StartTime > currentTime)))),
             a => a.AvailabilitySlot.SlotDate,
             false, // Orden cronológico ascendente (los más próximos primero)
+            false,
             "AvailabilitySlot.AvailabilityRule.Doctor.Specialty", "Patient");
 
         return appointments.Map(a => a.ToSearchResponse());
@@ -139,7 +140,7 @@ public class AppointmentService : IAppointmentService
     {
         var appointments = await _unitOfWork.Repository<Appointment>()
             .PaginateAsync(request.PageSize, request.PageIndex, a => a.AvailabilitySlot.SlotDate == request.Date, a => a.AvailabilitySlot.StartTime,
-                request.Descending, "AvailabilitySlot.AvailabilityRule.Doctor.Specialty", "Patient");
+                request.Descending, false, "AvailabilitySlot.AvailabilityRule.Doctor.Specialty", "Patient");
 
         return appointments.Map(a => a.ToSearchResponse());
     }
@@ -163,6 +164,7 @@ public class AppointmentService : IAppointmentService
                   (request.EndDate == null || a.AvailabilitySlot.SlotDate <= request.EndDate.Value),
                   a => a.AvailabilitySlot.SlotDate,
             request.Descending,
+            false,
             "AvailabilitySlot.AvailabilityRule.Doctor.Specialty", "Patient");
 
         return appointments.Map(a => a.ToSearchResponse());

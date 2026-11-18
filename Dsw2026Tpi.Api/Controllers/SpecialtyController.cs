@@ -100,7 +100,7 @@ public class SpecialtyController : ControllerBase
     /// </summary>
     /// <param name="id">Id de la especialidad.</param>
     /// <param name="request">Estado activo o inactivo.</param>
-    [HttpPut("{id}/status")]
+    [HttpPatch("{id}/status")]
     [Authorize(Policy = Policies.AdminPolicy)]
     [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status404NotFound)]
