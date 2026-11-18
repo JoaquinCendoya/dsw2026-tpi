@@ -19,13 +19,13 @@ public class SpecialtyService : ISpecialtyService
 
     public async Task<Pagination<SpecialtyModel.Response>> GetAll(SpecialtyModel.SearchRequest request)
     {
-        var specialties = await _unitOfWork.Repository<Specialty>().PaginateIncludingDeletedAsync(
+        var specialties = await _unitOfWork.Repository<Specialty>().PaginateAsync(
             request.PageSize,
             request.PageIndex,
-            s => (string.IsNullOrWhiteSpace(request.Name) || s.Name.Contains(request.Name))
-                && (request.IncludeInactive || !s.Deleted),
+            s => string.IsNullOrWhiteSpace(request.Name) || s.Name.Contains(request.Name),
             s => s.Name,
-            request.Descending
+            request.Descending,
+            request.IncludeInactive
         );
 
         return specialties.Map(s => s.ToResponse());
@@ -65,7 +65,7 @@ public class SpecialtyService : ISpecialtyService
 
     public async Task<SpecialtyModel.Response> SetStatus(Guid id, bool isActive)
     {
-        var specialty = await _unitOfWork.Repository<Specialty>().GetByIdIncludingDeletedAsync(id)
+        var specialty = await _unitOfWork.Repository<Specialty>().GetByIdAsync(id, includeDeleted: true)
             ?? throw new EntityNotFoundException(nameof(Specialty));
 
         if (!isActive)

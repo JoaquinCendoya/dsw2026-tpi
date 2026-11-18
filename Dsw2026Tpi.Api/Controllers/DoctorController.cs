@@ -136,7 +136,7 @@ public class DoctorController : AppController
     /// </summary>
     /// <param name="id">Id del médico.</param>
     /// <param name="request">Estado activo o inactivo.</param>
-    [HttpPut("{id:guid}/status")]
+    [HttpPatch("{id:guid}/status")]
     [Authorize(Policy = Policies.AdminPolicy)]
     [ProducesResponseType(typeof(DoctorModel.Response), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status404NotFound)]

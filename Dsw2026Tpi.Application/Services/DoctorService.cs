@@ -1,4 +1,4 @@
-﻿using Dsw2026Tpi.Application.Common;
+using Dsw2026Tpi.Application.Common;
 using Dsw2026Tpi.Application.Interfaces;
 using Dsw2026Tpi.Application.Mappings;
 using Dsw2026Tpi.Application.Models;
@@ -20,14 +20,14 @@ public class DoctorService : IDoctorService
 
     public async Task<Pagination<DoctorModel.Response>> GetAll(DoctorModel.SearchRequest request)
     {
-        var doctors = await _unitOfWork.Repository<Doctor>().PaginateIncludingDeletedAsync(
+        var doctors = await _unitOfWork.Repository<Doctor>().PaginateAsync(
             request.PageSize,
             request.PageIndex,
             d => (string.IsNullOrWhiteSpace(request.Name) || d.Name.Contains(request.Name))
-                && (!request.SpecialtyId.HasValue || d.SpecialtyId == request.SpecialtyId.Value)
-                && (request.IncludeInactive || !d.Deleted),
+                && (!request.SpecialtyId.HasValue || d.SpecialtyId == request.SpecialtyId.Value),
             d => d.Name,
             request.Descending,
+            request.IncludeInactive,
             nameof(Doctor.Specialty)
         );
 
@@ -84,7 +84,7 @@ public class DoctorService : IDoctorService
 
     public async Task<DoctorModel.Response> SetStatus(Guid id, bool isActive)
     {
-        var doctor = await _unitOfWork.Repository<Doctor>().GetByIdIncludingDeletedAsync(id)
+        var doctor = await _unitOfWork.Repository<Doctor>().GetByIdAsync(id, includeDeleted: true)
             ?? throw new EntityNotFoundException(nameof(Doctor));
 
         if (!isActive)
