@@ -27,7 +27,7 @@ public class DoctorService : IDoctorService
                 && (!request.SpecialtyId.HasValue || d.SpecialtyId == request.SpecialtyId.Value),
             d => d.Name,
             request.Descending,
-            false,
+            request.IncludeInactive,
             nameof(Doctor.Specialty)
         );
 
@@ -80,6 +80,25 @@ public class DoctorService : IDoctorService
 
         _unitOfWork.Repository<Doctor>().Delete(doctor);
         await _unitOfWork.SaveChangesAsync();
+    }
+
+    public async Task<DoctorModel.Response> SetStatus(Guid id, bool isActive)
+    {
+        var doctor = await _unitOfWork.Repository<Doctor>().GetByIdAsync(id, includeDeleted: true)
+            ?? throw new EntityNotFoundException(nameof(Doctor));
+
+        if (!isActive)
+        {
+            _unitOfWork.Repository<Doctor>().Delete(doctor);
+        }
+        else
+        {
+            doctor.Restore();
+            _unitOfWork.Repository<Doctor>().Update(doctor);
+        }
+
+        await _unitOfWork.SaveChangesAsync();
+        return doctor.ToResponse();
     }
 
     public async Task<IEnumerable<DoctorModel.AvailabilityResponse>> GetAvailabilities(Guid id)

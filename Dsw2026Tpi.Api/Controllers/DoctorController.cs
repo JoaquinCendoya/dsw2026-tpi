@@ -1,4 +1,4 @@
-﻿using Dsw2026Tpi.Application.Interfaces;
+using Dsw2026Tpi.Application.Interfaces;
 using Dsw2026Tpi.Application.Models;
 using Dsw2026Tpi.CrossCutting.Identity;
 using Dsw2026Tpi.CrossCutting.Models;
@@ -63,7 +63,7 @@ public class DoctorController : AppController
     /// <param name="id">Id del médico.</param>
     /// <response code="200">Disponibilidad horaria por día de la semana.</response>
     [HttpGet("{id:guid}/availabilities")]
-    [Authorize(Policy = Policies.PatientPolicy)]
+    [Authorize(Roles = $"{Roles.Administrator},{Roles.Patient}")]
     [ProducesResponseType(typeof(IEnumerable<DoctorModel.AvailabilityResponse>), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status401Unauthorized)]
     [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status403Forbidden)]
@@ -129,6 +129,23 @@ public class DoctorController : AppController
     {
         await _service.Delete(id);
         return Ok("ok");
+    }
+
+    /// <summary>
+    /// Activa o desactiva un médico del sistema.
+    /// </summary>
+    /// <param name="id">Id del médico.</param>
+    /// <param name="request">Estado activo o inactivo.</param>
+    [HttpPatch("{id:guid}/status")]
+    [Authorize(Policy = Policies.AdminPolicy)]
+    [ProducesResponseType(typeof(DoctorModel.Response), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status404NotFound)]
+    [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status403Forbidden)]
+    public async Task<IActionResult> SetStatus([FromRoute] Guid id, [FromBody] DoctorModel.StatusRequest request)
+    {
+        var result = await _service.SetStatus(id, request.IsActive);
+        return Ok(result);
     }
 
     /// <summary>
