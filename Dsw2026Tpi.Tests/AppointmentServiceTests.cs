@@ -72,7 +72,7 @@ public class AppointmentServiceTests
         result.Should().NotBeNull();
         slotRepo.Received(1).Update(Arg.Is<AvailabilitySlot>(s => s!.Status == SlotStatus.Booked));
         await appointmentRepo.Received(1).AddAsync(Arg.Any<Appointment>());
-        await _unitOfWorkSubstitute.Received(1).SaveChangesAsync();
+        await _unitOfWorkSubstitute.Received(2).SaveChangesAsync();
         await transactionMock.Received(1).CommitAsync();
     }
 
@@ -211,6 +211,40 @@ public class AppointmentServiceTests
         slotRepo.Received(1).Update(Arg.Is<AvailabilitySlot>(s => s!.Status == SlotStatus.Available));
         appointmentRepo.Received(1).Update(Arg.Is<Appointment>(a => a!.Status == AppointmentStatus.Cancelled));
         await _unitOfWorkSubstitute.Received(1).SaveChangesAsync();
+    }
+
+    [Fact]
+    public async Task CancelAsync_RechazaCon403YNoModificaTurnoAjeno()
+    {
+        var appointmentId = Guid.NewGuid();
+        var slotId = Guid.NewGuid();
+        var specialty = new Specialty("Cardiología", "Descripción clínica", Guid.NewGuid());
+        var doctor = new Doctor("Dr. Test", "12345", specialty, Guid.NewGuid());
+        var rule = new AvailabilityRule(doctor, DateTime.UtcNow.Month, DateTime.UtcNow.Year,
+            DayOfWeek.Monday, new TimeOnly(8, 0), new TimeOnly(18, 0), Guid.NewGuid());
+        var slot = new AvailabilitySlot(rule, DateOnly.FromDateTime(DateTime.UtcNow.AddDays(1)),
+            new TimeOnly(10, 0), new TimeOnly(11, 0), slotId);
+        var patient = new Patient(Guid.NewGuid(), "12345678", "Juan Perez", "555-1234", Guid.NewGuid());
+        var appointment = new Appointment(slot, patient, "Motivo de consulta", appointmentId);
+
+        var appointmentRepo = Substitute.For<IRepository<Appointment>>();
+        var patientRepo = Substitute.For<IRepository<Patient>>();
+        var slotRepo = Substitute.For<IRepository<AvailabilitySlot>>();
+        appointmentRepo.GetByIdAsync(appointmentId).Returns(appointment);
+        patientRepo.GetByIdAsync(patient.Id).Returns(patient);
+        _unitOfWorkSubstitute.Repository<Appointment>().Returns(appointmentRepo);
+        _unitOfWorkSubstitute.Repository<Patient>().Returns(patientRepo);
+        _unitOfWorkSubstitute.Repository<AvailabilitySlot>().Returns(slotRepo);
+
+        var exception = await Assert.ThrowsAsync<AuthorizationException>(
+            () => _sut.CancelAsync(appointmentId, 87654321));
+
+        exception.Error.ErrorCode.Should().Be("FORBIDDEN_APPOINTMENT_ACCESS");
+        appointment.Status.Should().Be(AppointmentStatus.Booked);
+        slot.Status.Should().Be(SlotStatus.Booked);
+        appointmentRepo.DidNotReceive().Update(Arg.Any<Appointment>());
+        slotRepo.DidNotReceive().Update(Arg.Any<AvailabilitySlot>());
+        await _unitOfWorkSubstitute.DidNotReceive().SaveChangesAsync();
     }
 
     [Fact]

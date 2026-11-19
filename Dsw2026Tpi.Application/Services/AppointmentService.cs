@@ -57,18 +57,20 @@ public class AppointmentService : IAppointmentService
         var appointment = new Appointment(availabilitySlot, patient, request.Reason);
 
         _unitOfWork.Repository<AvailabilitySlot>().Update(availabilitySlot);
-        await _unitOfWork.Repository<Appointment>().AddAsync(appointment);
 
         try
         {
+            // Persistir primero el cambio protegido por RowVersion garantiza que la
+            // concurrencia del slot se detecte antes de insertar la cita.
             await _unitOfWork.SaveChangesAsync();
         }
         catch (DbUpdateConcurrencyException)
         {
-            _logger.LogWarning("Conflicto al reservar turno. SlotId: {SlotId}, Dni: {Dni}",
-                request.AvailabilitySlotId, request.Patient.Dni);
-            throw new ConflictException("El turno ya fue reservado por otro paciente.", "APPOINTMENT_CONFLICT");
+            throw CreateBookingConflict(request);
         }
+
+        await _unitOfWork.Repository<Appointment>().AddAsync(appointment);
+        await _unitOfWork.SaveChangesAsync();
         await transaction.CommitAsync();
 
         _logger.LogInformation("Turno reservado. AppointmentId: {AppointmentId}, DoctorId: {DoctorId}, Dni: {Dni}",
@@ -90,7 +92,9 @@ public class AppointmentService : IAppointmentService
         if (patient.Dni != patientDni.ToString())
         {
             _logger.LogWarning("Intento de cancelación no autorizado. Turno: {AppointmentId}, Solicitante DNI: {Dni}", id, patientDni);
-            throw new BusinessRuleException("El turno indicado no pertenece al paciente autenticado.", "UNAUTHORIZED_APPOINTMENT_ACCESS");
+            throw new AuthorizationException(
+                "El turno indicado no pertenece al paciente autenticado.",
+                "FORBIDDEN_APPOINTMENT_ACCESS");
         }
 
         var availabilitySlot = await _unitOfWork.Repository<AvailabilitySlot>().GetByIdAsync(appointment.AvailabilitySlotId)
@@ -105,6 +109,13 @@ public class AppointmentService : IAppointmentService
         await _unitOfWork.SaveChangesAsync();
 
         _logger.LogInformation("Turno cancelado de forma segura por el paciente. AppointmentId: {AppointmentId}", id);
+    }
+
+    private ConflictException CreateBookingConflict(AppointmentModel.Request request)
+    {
+        _logger.LogWarning("Conflicto al reservar turno. SlotId: {SlotId}, Dni: {Dni}",
+            request.AvailabilitySlotId, request.Patient.Dni);
+        return new ConflictException("El turno ya fue reservado por otro paciente.", "APPOINTMENT_CONFLICT");
     }
 
     // VALIDACIÓN DE PACIENTE: Método paginado que consulta únicamente mediante el DNI seguro extraído del JWT

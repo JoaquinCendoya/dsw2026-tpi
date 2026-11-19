@@ -75,6 +75,8 @@ public class AppointmentController : ControllerBase
     /// <summary>
     /// Cancela un turno reservado validando la pertenencia al paciente autenticado.
     /// </summary>
+    /// <response code="403">El turno pertenece a otro paciente.</response>
+    /// <response code="409">El turno no se encuentra en un estado que permita cancelarlo.</response>
     [HttpDelete("{id}")]
     [Authorize(Policy = Policies.PatientPolicy)]
     [ProducesResponseType(StatusCodes.Status200OK)]
