@@ -6,7 +6,6 @@ using Dsw2026Tpi.Domain.Entities;
 using Dsw2026Tpi.Domain.Enums;
 using Dsw2026Tpi.Domain.Interfaces;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.Data.SqlClient;
 using Microsoft.Extensions.Logging;
 using static Microsoft.EntityFrameworkCore.DbLoggerCategory;
 
@@ -58,20 +57,20 @@ public class AppointmentService : IAppointmentService
         var appointment = new Appointment(availabilitySlot, patient, request.Reason);
 
         _unitOfWork.Repository<AvailabilitySlot>().Update(availabilitySlot);
-        await _unitOfWork.Repository<Appointment>().AddAsync(appointment);
 
         try
         {
+            // Persistir primero el cambio protegido por RowVersion garantiza que la
+            // concurrencia del slot se detecte antes de insertar la cita.
             await _unitOfWork.SaveChangesAsync();
         }
         catch (DbUpdateConcurrencyException)
         {
             throw CreateBookingConflict(request);
         }
-        catch (DbUpdateException exception) when (IsActiveAppointmentUniqueConstraintViolation(exception))
-        {
-            throw CreateBookingConflict(request);
-        }
+
+        await _unitOfWork.Repository<Appointment>().AddAsync(appointment);
+        await _unitOfWork.SaveChangesAsync();
         await transaction.CommitAsync();
 
         _logger.LogInformation("Turno reservado. AppointmentId: {AppointmentId}, DoctorId: {DoctorId}, Dni: {Dni}",
@@ -117,13 +116,6 @@ public class AppointmentService : IAppointmentService
         _logger.LogWarning("Conflicto al reservar turno. SlotId: {SlotId}, Dni: {Dni}",
             request.AvailabilitySlotId, request.Patient.Dni);
         return new ConflictException("El turno ya fue reservado por otro paciente.", "APPOINTMENT_CONFLICT");
-    }
-
-    private static bool IsActiveAppointmentUniqueConstraintViolation(DbUpdateException exception)
-    {
-        // SQL Server puede reportar la carrera mediante el índice único filtrado en vez del RowVersion.
-        return exception.GetBaseException() is SqlException { Number: 2601 or 2627 } sqlException &&
-               sqlException.Message.Contains("IX_Appointments_AvailabilitySlotId", StringComparison.OrdinalIgnoreCase);
     }
 
     // VALIDACIÓN DE PACIENTE: Método paginado que consulta únicamente mediante el DNI seguro extraído del JWT

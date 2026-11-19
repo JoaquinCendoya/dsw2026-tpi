@@ -72,7 +72,7 @@ public class AppointmentServiceTests
         result.Should().NotBeNull();
         slotRepo.Received(1).Update(Arg.Is<AvailabilitySlot>(s => s!.Status == SlotStatus.Booked));
         await appointmentRepo.Received(1).AddAsync(Arg.Any<Appointment>());
-        await _unitOfWorkSubstitute.Received(1).SaveChangesAsync();
+        await _unitOfWorkSubstitute.Received(2).SaveChangesAsync();
         await transactionMock.Received(1).CommitAsync();
     }
 
