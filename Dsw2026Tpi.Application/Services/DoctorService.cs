@@ -46,10 +46,14 @@ public class DoctorService : IDoctorService
 
     public async Task<DoctorModel.Response> Create(DoctorModel.Request request)
     {
+        var normalizedLicense = request.LicenseNumber.Trim();
+
+        await EnsureUniqueLicenseNumberAsync(normalizedLicense);
+
         var specialty = await _unitOfWork.Repository<Specialty>().GetByIdAsync(request.SpecialtyId)
             ?? throw new EntityNotFoundException(nameof(Specialty));
 
-        var doctor = new Doctor(request.Name, request.LicenseNumber, specialty);
+        var doctor = new Doctor(request.Name.Trim(), normalizedLicense, specialty);
 
         await _unitOfWork.Repository<Doctor>().AddAsync(doctor);
         await _unitOfWork.SaveChangesAsync();
@@ -62,15 +66,35 @@ public class DoctorService : IDoctorService
         var doctor = await _unitOfWork.Repository<Doctor>().GetByIdAsync(id)
             ?? throw new EntityNotFoundException(nameof(Doctor));
 
+        var normalizedLicense = request.LicenseNumber.Trim();
+
+        await EnsureUniqueLicenseNumberAsync(normalizedLicense, id);
+
         var specialty = await _unitOfWork.Repository<Specialty>().GetByIdAsync(request.SpecialtyId)
             ?? throw new EntityNotFoundException(nameof(Specialty));
 
-        doctor.UpdateProfile(request.Name, request.LicenseNumber, specialty);
+        doctor.UpdateProfile(request.Name.Trim(), normalizedLicense, specialty);
 
         _unitOfWork.Repository<Doctor>().Update(doctor);
         await _unitOfWork.SaveChangesAsync();
 
         return doctor.ToResponse();
+    }
+
+    private async Task EnsureUniqueLicenseNumberAsync(string normalizedLicense, Guid? excludeDoctorId = null)
+    {
+        var normalizedLower = normalizedLicense.ToLower();
+        var existingDoctors = await _unitOfWork.Repository<Doctor>().FindAsync(d =>
+            !d.Deleted
+            && d.LicenseNumber.ToLower() == normalizedLower
+            && (!excludeDoctorId.HasValue || d.Id != excludeDoctorId.Value));
+
+        if (existingDoctors.Any())
+        {
+            throw new ConflictException(
+                $"Ya existe un profesional registrado con la matrícula \"{normalizedLicense}\".",
+                "DOCTOR_LICENSE_CONFLICT");
+        }
     }
 
     public async Task Delete(Guid id)
