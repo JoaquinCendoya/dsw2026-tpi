@@ -7,7 +7,7 @@ public static class SpecialtyMappingExtensions
 {
     public static SpecialtyModel.Response ToResponse(this Specialty entity)
     {
-        return new SpecialtyModel.Response(entity.Id, entity.Name, entity.Description, !entity.Deleted);
+        return new SpecialtyModel.Response(entity.Id, entity.Name, entity.Description, entity.IsActive);
     }
 
     public static Specialty ToEntity(this SpecialtyModel.Request dto)

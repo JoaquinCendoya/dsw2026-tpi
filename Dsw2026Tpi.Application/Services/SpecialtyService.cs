@@ -22,10 +22,11 @@ public class SpecialtyService : ISpecialtyService
         var specialties = await _unitOfWork.Repository<Specialty>().PaginateAsync(
             request.PageSize,
             request.PageIndex,
-            s => string.IsNullOrWhiteSpace(request.Name) || s.Name.Contains(request.Name),
+            s => (request.IncludeInactive || s.IsActive)
+                && (string.IsNullOrWhiteSpace(request.Name) || s.Name.Contains(request.Name)),
             s => s.Name,
             request.Descending,
-            request.IncludeInactive
+            false
         );
 
         return specialties.Map(s => s.ToResponse());
@@ -65,19 +66,12 @@ public class SpecialtyService : ISpecialtyService
 
     public async Task<SpecialtyModel.Response> SetStatus(Guid id, bool isActive)
     {
-        var specialty = await _unitOfWork.Repository<Specialty>().GetByIdAsync(id, includeDeleted: true)
+        var specialty = await _unitOfWork.Repository<Specialty>().GetByIdAsync(id)
             ?? throw new EntityNotFoundException(nameof(Specialty));
 
-        if (!isActive)
-        {
-            _unitOfWork.Repository<Specialty>().Delete(specialty);
-        }
-        else
-        {
-            specialty.Restore();
-            _unitOfWork.Repository<Specialty>().Update(specialty);
-        }
+        specialty.SetActive(isActive);
 
+        _unitOfWork.Repository<Specialty>().Update(specialty);
         await _unitOfWork.SaveChangesAsync();
         return specialty.ToResponse();
     }
@@ -92,7 +86,7 @@ public class SpecialtyService : ISpecialtyService
         var startOfQuarter = new DateTime(now.Year, quarterStartMonth, 1, 0, 0, 0, DateTimeKind.Utc);
 
         var activeSpecialties = (await _unitOfWork.Repository<Specialty>()
-            .FindAsync(s => !s.Deleted))
+            .FindAsync(s => !s.Deleted && s.IsActive))
             .ToList();
 
         int totalSpecialties = activeSpecialties.Count;
