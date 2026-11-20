@@ -1,4 +1,4 @@
-﻿using Dsw2026Tpi.CrossCutting.Exceptions;
+using Dsw2026Tpi.CrossCutting.Exceptions;
 
 namespace Dsw2026Tpi.Domain.Entities;
 
@@ -6,6 +6,7 @@ public class Specialty: EntityBase
 {
     public string Name { get; private set; } = null!;
     public string Description { get; private set; } = null!;
+    public bool IsActive { get; private set; } = true;
 
     #region Constructor for EF
 #pragma warning disable CS8618
@@ -30,5 +31,11 @@ public class Specialty: EntityBase
 
         Name = name;
         Description = description;
+    }
+
+    public void SetActive(bool isActive)
+    {
+        IsActive = isActive;
+        UpdatedAt = DateTime.UtcNow;
     }
 }
